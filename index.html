@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		
+		<script src="game_files/pixi.js"></script>
+		<link href="https://fonts.googleapis.com/css?family=Montserrat:100" rel="stylesheet">
+		
+		<style>
+
+			body {
+				margin: 0;
+				background-image: linear-gradient(to bottom left, #001433, #003380);
+			}
+
+			.splash{
+				margin: 0;
+				height: 100vh;
+			}
+			
+			.about{
+				height: 200vh;	
+			}
+
+			.splash-content{
+				text-align: center;
+				height: 40vh;
+				padding: 30vh 30vw;
+			}
+
+			.splash-content img {
+				width: 25vmin;
+				height: 25vmin;
+				filter: sepia(100%) hue-rotate(180deg) saturate(4) brightness(110%);
+			}
+
+			h1, h2, p {
+				color: white;
+				font-family: 'Montserrat';, sans-serif;
+				letter-spacing: 3px;
+			}
+
+			canvas {
+	        	display: block;
+	        	margin: 0 auto;
+	        	background-color:#FFF;
+	        }
+
+	        .about-content {
+				text-align: center;
+				padding: 10vh 5vw;
+	        }
+
+		</style>
+		
+		<link rel="preload" as="font" href="game_files/ModernSans-Light.otf" crossorigin="anonymous">
+		<link rel="stylesheet" type="text/css" href="game_files/styles.css">
+
+	</head>
+	<body>
+
+		<div class="splash">
+			<div class="splash-content">
+				<img src="swan_logo.png">
+				<h1>cycnus</h1>
+				<p>coming soon</p>
+			</div>
+		</div>
+
+		<div class="about">
+
+			<div class="about-content">
+				
+				<center>
+
+					<h2>What we do</h2>
+
+					<p>Here, the team of cycnus strives to make enjoyable games for everyone to enjoy. We aim to make the most high-quality games that will leave a lasting imprint into the industry.</p>
+
+				<br>
+
+				<h2>A sample demo</h2>
+				
+				<center id="container"></center>
+
+				<script type="text/javascript" src="game_files/intialize.js"></script>
+				<script type="text/javascript" src="game_files/collide.js"></script>
+				<script type="text/javascript" src="game_files/generator.js"></script>
+				<script type="text/javascript" src="game_files/test.js"></script>
+				
+				</center>
+				
+	 		</div>
+
+		</div>
+
+	</body>
+</html>
