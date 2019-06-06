@@ -1,0 +1,15 @@
+/* This is how you link custom fonts to the game*/
+			
+@font-face {
+	font-family: "Modern Sans";
+	src: url("../fonts/ModernSans-Light.otf") format("opentype");
+}
+
+@font-face {
+	font-family: "Pixellari";
+	src: url("../fonts/Pixellari.ttf");
+}
+
+h1 {
+	font-family: "Pixellari";
+}

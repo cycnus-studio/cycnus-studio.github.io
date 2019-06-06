@@ -1,0 +1,22 @@
+<!doctype html>
+<html>
+	<head>
+		<header name = "Access-Control-Allow-Origin" value = "*" /> 
+		<meta charset="utf-8">
+		<!-- Fetches font file first, IMPORTANT OR ELSE SPLASH SCREEN IS SCREWED UP -->
+		<link rel="preload" href="fonts/ModernSans-Light.otf" as="font">
+		<link rel="stylesheet" type="text/css" href="styles/styles.css">
+		<script src="src/pixi.js"></script>
+	</head>
+	<body>
+		<div id="content">
+			<canvas id="canvas"></canvas>
+		</div>
+		<center id="container"></center>
+		<script type="text/javascript" src="src/music.js"></script>
+		<script type="text/javascript" src="src/intialize.js"></script>
+        <script type="text/javascript" src="src/main.js"></script>
+		<script type="text/javascript" src="src/collide.js"></script>
+		<script type="text/javascript" src="src/generator.js"></script>
+	</body>
+</html>
