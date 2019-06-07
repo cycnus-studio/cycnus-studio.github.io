@@ -55,13 +55,15 @@ let enemies = [];
 let bullets = [];
 let obstacles = [];
 
-let sprite, title, start, round_title, health_bar, active_health, pause; // Set all sprites here
+let sprite, title, start, round_title, health_bar, active_health, pause, boss_bar, boss_health, boss; // Set all sprites here
 let state;
 
 let enemies_left = 0;
 let killed = 0;
 
 let music = new AudioProcessor();
+
+music.pause();
 
 // style all text in game with this (you can style it with http://pixijs.download/release/docs/PIXI.TextStyle.html)
 
@@ -165,8 +167,11 @@ function set_splash_screen(){
     // Create player
 
     sprite = new PIXI.Graphics();
-    sprite.lineStyle(1, 0xFFFFFF, 1);
-    sprite.beginFill(0x000000); // Set colour here
+
+	sprite.colour = COLOURS[rand_range(0, 5)];
+
+    sprite.lineStyle(1, sprite.colour, 1);
+    sprite.beginFill(sprite.colour); // Set colour here
     sprite.drawRect(0, 0, SPRITE_SIZE * 2, SPRITE_SIZE * 2);
     sprite.endFill();
 
@@ -179,6 +184,7 @@ function set_splash_screen(){
     sprite.vy = 0;
 
     sprite.hp = MAX_HEALTH;
+    sprite.shots = 3;
 
     sprite.interactive = true;
     sprite.buttonMode = true;
@@ -330,7 +336,7 @@ function set_title_screen(){
 
     // text
 
-    let title = new PIXI.Text("BLOCK BUSTER", style);
+    let title = new PIXI.Text("NIGHTLIGHT", style);
     title.anchor.set(0.5, 0.5);
     title.position.set(MID_WIDTH, -MID_HEIGHT + MID_HEIGHT / 2);
 
@@ -500,10 +506,9 @@ function generateHealthBar(){
 
     active_health = new PIXI.Graphics();
     active_health.lineStyle(1, 0xFFFFFF);
-    active_health.drawRect(0, 0, 1, HEALTH_HEIGHT - 24);
+    active_health.drawRect(0, 0, 1, HEALTH_HEIGHT);
 
-    active_health.position.set(WIDTH + HEALTH_WIDTH * 2 + 20, HEIGHT - HEALTH_HEIGHT - 6);
-	active_health.pivot.x = active_health.width;
+    active_health.position.set(WIDTH + HEALTH_WIDTH * 2 + 20, HEIGHT - HEALTH_HEIGHT - 20);
 
     let target = WIDTH - HEALTH_WIDTH - 20;
 
@@ -518,20 +523,15 @@ function generateHealthBar(){
 
             app.ticker.remove(move_in);
 
-            target = health_bar.position.x + health_bar.width * 0.5 - 52.5;
-
             app.ticker.add(function move_health(delta){
 
-                let distance = ((health_bar.width - 2) - active_health.width) / 16;
+                let distance = (health_bar.width - active_health.width) / 8;
 				
                 active_health.width += distance;
-				//active_health.pivot.x = active_health.width / 2;
+				active_health.position.x += (health_bar.position.x + health_bar.width - active_health.width) - active_health.getBounds().x;
 
-                //console.log(active_health.width, HEALTH_WIDTH)
-
-                if(Math.abs((health_bar.width - 2) - active_health.width) < 0.5){
+                if(Math.abs(health_bar.width - active_health.width) < 0.5){
                     app.ticker.remove(move_health);
-                    console.log("load bar done")
                 }
 
             });
@@ -557,6 +557,60 @@ function generateHealthBar(){
 
 }
 
+function generateBossBar(){
+
+    // Outline
+
+    boss_bar = new PIXI.Graphics();
+    boss_bar.beginFill(0x000000);
+    boss_bar.lineStyle(1, 0xFFFFFF);
+    boss_bar.drawRect(0, 0, HEALTH_WIDTH, HEALTH_HEIGHT);
+    boss_bar.endFill();
+    boss_bar.position.set(-HEALTH_WIDTH - 20, 20);
+
+    // Active health portion
+
+    boss_health = new PIXI.Graphics();
+    boss_health.lineStyle(1, 0xFFFFFF);
+    boss_health.drawRect(0, 0, 1, HEALTH_HEIGHT);
+
+    boss_health.position.set(-HEALTH_WIDTH - 20, 20);
+
+    let target = 20;
+
+    app.ticker.add(function move_in(delta){
+
+        let distance = Math.abs(boss_bar.position.x - target) / 4;
+        
+        boss_bar.position.x += distance;
+        boss_health.position.x += distance;
+
+        if(target - boss_bar.position.x < 3){
+
+            app.ticker.remove(move_in);
+
+            app.ticker.add(function move_health(delta){
+
+                let distance = (boss_bar.width - boss_health.width) / 4;
+				
+                boss_health.width += distance;
+				boss_health.position.x += boss_bar.position.x - boss_health.getBounds().x;
+
+                if(Math.abs(boss_bar.width - boss_health.width) < 0.5){
+                    app.ticker.remove(move_health);
+                }
+
+            });
+
+        }
+
+    });
+
+    zone.addChild(boss_bar);
+    zone.addChild(boss_health);
+
+}
+
 function lose(){
     sprite.hp--;
     health_update();
@@ -565,6 +619,10 @@ function lose(){
 function win(){
     sprite.hp++;
     health_update();
+}
+
+function setWave(n){
+	wave_id = n;
 }
 
 let move_health_func, still_running = false;
@@ -577,14 +635,12 @@ function health_update(){
     still_running = true;
 
     let start        = active_health.width;
-    let target_width = (386 / 3) * sprite.hp;
-
-    let target_x     = health_bar.position.x + 386 / 2 + (386 - target_width) / 2 - [-7.5, -1.5, 4.5, 10.5][sprite.hp];
+    let target_width = (400 / MAX_HEALTH) * sprite.hp;
 
     app.ticker.add(move_health_func = function move_health(delta){
-
-        active_health.position.x += (target_x - active_health.position.x) / 4;
+		
         active_health.width += (target_width - active_health.width) / 4;
+		active_health.position.x += (health_bar.position.x + health_bar.width - active_health.width) - active_health.getBounds().x;
         
         if(Math.abs(target_width - active_health.width) < 0.02){
             app.ticker.remove(move_health);
@@ -593,8 +649,54 @@ function health_update(){
 
     });
 
-    zone.addChild(active_health);
+}
 
+let move_boss_health_func, boss_still_running = false;
+
+function updateBossBar(){
+
+    if(boss_still_running == true)
+        app.ticker.remove(move_boss_health_func);
+
+    boss_still_running = true;
+
+    let start        = boss_health.width;
+    let target_width = (400 / boss.max_hp) * boss.hp;
+
+    app.ticker.add(move_boss_health_func = function move_boss_health(delta){
+		
+        boss_health.width += (target_width - boss_health.width) / 4;
+		boss_health.position.x += boss_bar.position.x - boss_health.getBounds().x;
+        
+        if(Math.abs(target_width - boss_health.width) < 0.02){
+            app.ticker.remove(move_boss_health);
+            boss_still_running = false;
+        }
+
+    });
+	
+}
+
+function boss_bar_out(){
+
+	let target = -HEALTH_WIDTH - 20;
+
+    app.ticker.add(function move_out(delta){
+
+        let distance = Math.abs(boss_bar.position.x - target) / 8;
+        
+        boss_bar.position.x -= distance;
+        boss_health.position.x -= distance;
+
+        if(Math.abs(target - boss_bar.position.x) < 3){
+
+            app.ticker.remove(move_out);
+            zone.removeChild(boss_bar);
+            zone.removeChild(boss_health);
+
+        }
+
+    });
 }
 
 
@@ -627,36 +729,45 @@ function generateWave(){
 
     generateTitle(wave_id++);
 
-    let enemy_count = Math.min(10, Math.ceil(wave_id / 3));
+    let enemy_count = 0;
+    let counter = 0;
+    enemies_left = 0;
 
-    enemies_left = enemy_count;
+    // Max of 4 of the same unit 
 
-    for(let counter = 0; counter < enemy_count; ++counter){
-        let enemy = generateEnemy("triangle", obstacles);
+    for(let sides = 0; sides < ENEMY_TYPES.length; ++sides){
 
-        enemy.spriteID = counter;
+    	if(wave_id >= STARTING_ROUNDS[sides]){
 
-        zone.addChild(enemy);
-        obstacles.push(enemy);
-        enemies.push(enemy);
+    		for(let units = 0; units < Math.min(2, Math.ceil((wave_id - STARTING_ROUNDS[sides]) / (sides + 1))); units++){
+    			let enemy = generateEnemy(ENEMY_TYPES[sides], rand_range(6, 6 + Math.floor(wave_id / 10)), obstacles);
+    			enemy.spriteID = counter++;
+
+		        zone.addChild(enemy);
+		        obstacles.push(enemy);
+		        enemies.push(enemy);
+		        enemy_count++;
+		        enemies_left++;
+    		}
+
+    	}
+
     }
 	
 	if(wave_id % 5 == 4){
-		
-		let boss_counter = 1;
-		
-		for(let counter = 0; counter < boss_counter; ++counter){
-			let enemy = generateBoss("triangle", obstacles);
 
-			enemy.spriteID = enemy_count + counter;
+		generateBossBar();
+		
+		boss = generateBoss("triangle", rand_range(6, 6 + Math.floor(wave_id / 10)), obstacles);
 
-			zone.addChild(enemy);
-			obstacles.push(enemy);
-			enemies.push(enemy);
+		boss.spriteID = enemy_count;
+
+		zone.addChild(boss);
+		obstacles.push(boss);
+		enemies.push(boss);
 			
-			enemies_left++;
-			
-		}
+		enemies_left++;
+		
 	}
 
     // Countdown to nex
@@ -702,14 +813,14 @@ function shoot(id, src_x, src_y, tgt_x, tgt_y, is_player = false){
             return;
         }
         enemies[id].shots--;
-        enemies[id].previousShot = 10;
+        enemies[id].previousShot = 5;
     }
 
     let unit_size = is_player ? SPRITE_SIZE : enemies[id].height;
 
     let bullet = new PIXI.Graphics();
-    bullet.beginFill(0xFFFFFF); // Set colour here
-    bullet.drawCircle(0, 0, 2);
+    bullet.beginFill(is_player ? sprite.colour : enemies[id].colour); // Set colour here
+    bullet.drawCircle(0, 0, 3);
     bullet.endFill();
 
     let mx = tgt_x - src_x - unit_size;
@@ -725,6 +836,9 @@ function shoot(id, src_x, src_y, tgt_x, tgt_y, is_player = false){
     
     bullet.vx = Math.cos(angle);
     bullet.vy = Math.sin(angle);
+
+    bullet.max_veloc = is_player ? BULLET_SPEED : enemies[id].bullet_speed;
+
     bullet.anchor = {x: 1, y: 1};
     bullet.isBullet = true;
 
@@ -737,7 +851,30 @@ function shoot(id, src_x, src_y, tgt_x, tgt_y, is_player = false){
 
 }
 
+function explode(x, y, radius, colour = 0xBC1E1E){
 
+	let enemy_explosion_circle = new PIXI.Graphics();
+
+	enemy_explosion_circle.beginFill(colour); // Set colour here
+
+	enemy_explosion_circle.drawCircle(x, y, radius);
+	enemy_explosion_circle.endFill();
+
+	zone.addChild(enemy_explosion_circle);
+
+	app.ticker.add(function boom(delta) {
+
+		enemy_explosion_circle.alpha -= delta * 0.04;
+
+		if(enemy_explosion_circle.alpha <= 0){
+			app.ticker.remove(boom);
+			enemy_explosion_circle.alpha.visible = false;
+			zone.removeChild(enemy_explosion_circle);
+		}
+
+	});
+
+}
 
 
 
@@ -786,7 +923,7 @@ function play(delta){
 
     for(let ID = 0; ID < bullets.length; ID++){
 
-        let [new_bullet, is_hit] = move(bullets[ID], BULLET_SPEED, obstacles);
+        let [new_bullet, is_hit] = move(bullets[ID], bullets[ID].max_veloc, obstacles);
 
         let hit_player = in_polygon(new_bullet, sprite);
 		
@@ -794,6 +931,30 @@ function play(delta){
 			valid_bullets.push(new_bullet);
         } else {
             // maybe add a small explosion animation here
+
+            let explosion_circle = new PIXI.Graphics();
+
+	        if(bullets[ID].spriteID < enemies.length)
+	            explosion_circle.beginFill(bullets[ID].isPlayerShot ? sprite.colour : enemies[bullets[ID].spriteID].colour); // Set colour here
+	        else
+	            explosion_circle.beginFill(sprite.colour);
+
+	        explosion_circle.drawCircle(bullets[ID].position.x, bullets[ID].position.y, Math.floor(Math.random() * 15 + 5));
+	        explosion_circle.endFill();
+
+	        zone.addChild(explosion_circle);
+
+	        app.ticker.add(function boom(delta) {
+
+	            explosion_circle.alpha -= delta * 0.1;
+
+	            if(explosion_circle.alpha <= 0){
+	                app.ticker.remove(boom);
+	                explosion_circle.alpha.visible = false;
+	                zone.removeChild(explosion_circle);
+	            }
+
+	        });
 
             if(hit_player == true){
 
@@ -805,46 +966,71 @@ function play(delta){
 
                 health_update();
 
-            } else if(is_hit !== true && obstacles[is_hit].isObstacle !== true){
+            } else if(is_hit !== true && obstacles[is_hit].isObstacle !== true && obstacles[is_hit].scale.x == 1){
+				
+				obstacles[is_hit].hp--;
 
-                obstacles[is_hit].dead = true;
-                obstacles[is_hit].visible = false;
-			    zone.removeChild(obstacles[is_hit]);
+				if(obstacles[is_hit].isBoss == true){
+					updateBossBar();
+				} 
+				
+				if(obstacles[is_hit].hp <= 0){
 
-                enemies_left--;
-                killed++;
+					if(obstacles[is_hit].explode_on_death == true){
+
+						explode(obstacles[is_hit].position.x, obstacles[is_hit].position.y, 40)
+
+			            // Kill player if in radius
+
+			            if(in_radius(obstacles[is_hit].position.x, obstacles[is_hit].position.y, 40, sprite)){
+			            	sprite.hp--;
+			                if(sprite.hp == 0){
+			                    setTimeout(set_game_over, 1000);
+			                    app.ticker.remove(gameLoop);
+			                }
+			                health_update();
+			            }
+
+					}
+
+					app.ticker.add(function pop(delta){
+						obstacles[is_hit].scale.x /= 1.2;
+						obstacles[is_hit].scale.y /= 1.2;
+
+						if(obstacles[is_hit].scale.x < 0.01){
+							obstacles[is_hit].visible = false;
+							enemies_left--;
+							killed++;
+
+							zone.removeChild(obstacles[is_hit]);
+							app.ticker.remove(pop);
+						}
+
+					})
+
+					obstacles[is_hit].dead = true;
+
+					if(obstacles[is_hit].isBoss == true){
+						boss_bar_out();
+					}
+
+				}
+
             }
 
-            let explosion_circle = new PIXI.Graphics();
-            explosion_circle.beginFill(0xFFFFB3, 1); // Set colour here
-            explosion_circle.drawCircle(bullets[ID].position.x, bullets[ID].position.y, Math.floor(Math.random() * 15 + 5));
-            explosion_circle.endFill();
-
-            zone.addChild(explosion_circle);
-
-            app.ticker.add(function boom(delta) {
-
-                explosion_circle.alpha -= delta * 0.1;
-
-                if(explosion_circle.alpha <= 0){
-                    app.ticker.remove(boom);
-                    explosion_circle.alpha.visible = false;
-                    zone.removeChild(explosion_circle);
-                }
-
-            });
-
             bullets[ID].visible = false;
+			zone.removeChild(bullets[ID]);
 
             if(bullets[ID].isPlayerShot == true){
                 sprite.shots++;
             } else {
+				if(bullets[ID].spriteID >= enemies.length)
+					continue;
                 if(enemies[bullets[ID].spriteID].dead)
                     continue;
 				enemies[bullets[ID].spriteID].shots = Math.min(5, enemies[bullets[ID].spriteID].shots + 1);
             }
-
-            zone.removeChild(bullets[ID]);
+			
         }
 
     }
@@ -855,17 +1041,55 @@ function play(delta){
 	let bullets_shot = Math.min(wave_id * 2, enemies.length);
 
     for(let ID = 0; ID < enemies.length; ID++){
-        enemies[ID] = getPath(sprite, enemies[ID]);
-        enemies[ID] = move(enemies[ID], delta, obstacles)[0];
 
-        if(bullets_shot != 0 && enemies[ID].dead != true && isVisible(enemies[ID], sprite) == true && music.is_on_beat(ID * interval, (ID + 1) * interval)){
-            shoot(ID,
-                enemies[ID].position.x - enemies[ID].width * (1 - enemies[ID].anchor.x),
-                enemies[ID].position.y - enemies[ID].height * (1 - enemies[ID].anchor.y),
-                sprite.position.x + sprite.width * (1 - sprite.anchor.x),
-                sprite.position.y + sprite.height * (1 - sprite.anchor.y));
-			bullets_shot--;
-        }
+    	if(enemies[ID].scale.x != 1 && enemies[ID].dead != true){
+    		enemies[ID].scale.x += (1 - enemies[ID].scale.x) / enemies[ID].generation_rate;
+    		enemies[ID].scale.y += (1 - enemies[ID].scale.y) / enemies[ID].generation_rate;
+
+    		if(1 - enemies[ID].scale.x < 0.01)
+    			enemies[ID].scale.set(1, 1);
+
+    	} else {
+	        enemies[ID] = getPath(sprite, enemies[ID]);
+	        enemies[ID] = move(enemies[ID], delta, obstacles)[0];
+
+	        if(bullets_shot != 0 && enemies[ID].dead != true && isVisible(enemies[ID], sprite) == true && music.is_on_beat(ID * interval, (ID + 1) * interval)){
+	            shoot(ID,
+	                enemies[ID].position.x - enemies[ID].width * (1 - enemies[ID].anchor.x),
+	                enemies[ID].position.y - enemies[ID].height * (1 - enemies[ID].anchor.y),
+	                sprite.position.x + sprite.width * (1 - sprite.anchor.x),
+	                sprite.position.y + sprite.height * (1 - sprite.anchor.y));
+				bullets_shot--;
+	        }
+
+	        if(enemies[ID].dead != true && enemies[ID].is_explode == true && in_radius(enemies[ID].position.x, enemies[ID].position.y, 30, sprite)){
+	        	explode(enemies[ID].position.x, enemies[ID].position.y, 30, enemies[ID].colour);
+
+	        	enemies[ID].dead = true
+
+				app.ticker.add(function pop(delta){
+					enemies[ID].scale.x /= 1.2;
+					enemies[ID].scale.y /= 1.2;
+
+					if(enemies[ID].scale.x < 0.01){
+						enemies[ID].visible = false;
+						enemies_left--;
+						killed++;
+
+						zone.removeChild(enemies[ID]);
+						app.ticker.remove(pop);
+					}
+
+				});
+
+	        	sprite.hp--;
+			    if(sprite.hp == 0){
+			        setTimeout(set_game_over, 1000);
+			        app.ticker.remove(gameLoop);
+			    }
+			    health_update();
+			}
+	    }
 
     }
 
@@ -905,8 +1129,17 @@ app.renderer.resize(window.innerWidth, window.innerHeight);*/
  *    Load important files (Audio, Pictures, etc)
  */
 
+
+// hohoho this is going to be fun
+
 PIXI.loader
-  .add(["https://cycnus-studio.github.io/enemy_1.png"])
+  .add(["https://cycnus-studio.github.io/Project/img/triangle_black.png"])
+  .add(["https://cycnus-studio.github.io/Project/img/triangle_blue.png"])
+  .add(["https://cycnus-studio.github.io/Project/img/triangle_red.png"])
+  .add(["https://cycnus-studio.github.io/Project/img/triangle_yellow.png"])
+  .add(["https://cycnus-studio.github.io/Project/img/triangle_purple.png"])
+  .add(["https://cycnus-studio.github.io/Project/img/triangle_orange.png"])
+  .add(["https://cycnus-studio.github.io/Project/img/triangle_green.png"])
   .on("progress", loadProgressHandler) 
   .load(setup);
 
