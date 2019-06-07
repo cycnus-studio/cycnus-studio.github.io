@@ -169,9 +169,9 @@ const POINTS = [
  		
  		let [node, first] = queue.shift();
 
- 		if(node == tgt || isFullyVisible(player, enemy)){
+ 		if(node == tgt || isFullyVisible(player, enemy) || enemy.is_ghost == true){
 
- 			if(first == -1 || isFullyVisible(player, enemy))
+ 			if(first == -1 || isFullyVisible(player, enemy) || enemy.is_ghost == true)
  				break;
 
  			[tgt_pos.x, tgt_pos.y] = POINTS[first - 1];
@@ -197,32 +197,113 @@ const POINTS = [
 
  	let angle = Math.atan2(tgt_pos.y - enemy.position.y, tgt_pos.x - enemy.position.x);
 
-	enemy.vx = ENEMY_SPEED * Math.cos(angle);
-	enemy.vy = ENEMY_SPEED * Math.sin(angle);
+	enemy.vx = enemy.max_veloc * Math.cos(angle);
+	enemy.vy = enemy.max_veloc * Math.sin(angle);
 
  	return enemy;
 
  }
 
- function generateEnemy(type, obstacles){
+ function getPoints(sides, radius){
+
+ 	// Since it's a regular polygon, just pick equal distance points of the circumference.
+
+ 	let points = [];
+ 	let offset = Math.random() * Math.PI;
+
+ 	for(let side = 0; side < sides; side++){
+ 		let x, y;
+
+ 		x = radius * Math.cos(2 * Math.PI * side / sides + offset);
+ 		y = radius * Math.sin(2 * Math.PI * side / sides + offset);
+
+ 		points.push(x); points.push(y);
+
+ 	}
+
+ 	return points;
+
+ }
+ 
+ function getAttributes(type, colour){
+	
+	let attributes = {
+		colour: COLOURS[colour],
+		hp: 2,
+		speed: 3.5,
+		bullet_speed: 4,
+		is_explode: false,
+		is_ghost: false,
+		explode_on_death: false,
+	}
+
+	if(type == "triangle"){
+		attributes.bullet_speed += 1;
+		attributes.speed += 1.2;
+		attributes.hp -= 1;
+	} else if(type == "square"){
+		attributes.hp += 1;
+	} else if(type == "pentagon"){
+		attributes.speed += 0.6;
+		attributes.is_explode = true;
+		attributes.explode_on_death = true;
+	} else if(type == "hexagon"){
+		attributes.speed -= 1;
+		attributes.is_ghost = true;
+	}
+
+	if(colour == 7){
+		attributes.bullet_speed += 0.6;
+		attributes.speed += 0.6;
+	} else if(colour == 8){
+		attributes.hp += 1;
+	} else if(colour == 9){
+		attributes.speed += 1.2;
+	} else if(colour == 10){
+		attributes.hp += 1;
+		attributes.speed += 0.6;
+	} else if(colour == 11){
+		attributes.explode_on_death = true;
+	}
+
+	return attributes;
+ }
+
+ function generateEnemy(type, colour, obstacles){
+
+ 	let attributes = getAttributes(type, colour);
+
+ 	let points = getPoints(ENEMY_TYPES.indexOf(type) + 3, SPRITE_SIZE * 1.5);
 	 
-	let enemy = new PIXI.Graphics();
-    enemy.lineStyle(1, 0xFFFFFF, 1);
-    enemy.beginFill(0x000000); // Set colour here
-    enemy.drawRect(0, 0, SPRITE_SIZE * 2, SPRITE_SIZE * 2);
+	let enemy = new PIXI.Graphics();//new PIXI.Sprite(PIXI.loader.resources[`https://cycnus-studio.github.io/Project/img/triangle_${COLOUR_NAMES[colour - 6]}.png`].texture);
+    
+    enemy.beginFill(attributes.colour == WHITE ? BLACK : attributes.colour); // Set colour here
+	enemy.lineStyle(rand_range(2, 6), WHITE);
+    enemy.drawPolygon(points);
     enemy.endFill();
+
     enemy.position.set(0, 0);
-	enemy.anchor = {x: 0.5, y: 0.5};
-	enemy.vx = 1;
-	enemy.vy = 0;
+	enemy.anchor = {x: 0, y: 0};
+
+	enemy.vx = enemy.vy = 0;
 	enemy.type = type;
 	enemy.isPlayer = true;
 	enemy.isUser = false;
+	
+	enemy.hp = enemy.max_hp = attributes.hp;
+	enemy.max_veloc = attributes.speed;
+	enemy.bullet_speed = attributes.bullet_speed;
+
+	enemy.colour = attributes.colour;
+
+	enemy.is_explode = attributes.is_explode;
+	enemy.explode_on_death = attributes.explode_on_death;
+	enemy.is_ghost = attributes.is_ghost;
 
 	enemy.shots = 5;
 	enemy.previousShot = 0;
 
-	enemy.hitArea = new PIXI.Polygon([0, 0, SPRITE_SIZE * 2, 0, SPRITE_SIZE * 2, SPRITE_SIZE * 2, 0, SPRITE_SIZE * 2]);
+	enemy.hitArea = new PIXI.Polygon(points);
 	
 	
 	// pop up? scale up? appear from wall?
@@ -233,42 +314,55 @@ const POINTS = [
 	} while(hit_wall(enemy, obstacles) == true);
 
 	//console.log(enemy.position.x);
+
+	enemy.scale.set(1e-5, 1e-5);
+	enemy.generation_rate = Math.random() * 9 + 2.5;
 	
 	return enemy;
 	
  }
  
  
- function generateBoss(type, obstacles){
+ function generateBoss(type, colour, obstacles){
 
- 	let enemy = new PIXI.Graphics();
-    enemy.lineStyle(1, 0xFFFFFF, 1);
-    enemy.beginFill(0x000000); // Set colour here
-    enemy.drawRect(0, 0, BOSS_SIZE * 2, BOSS_SIZE * 2);
+ 	let attributes = getAttributes(type, colour);
+
+ 	let points = getPoints(ENEMY_TYPES.indexOf(type) + 3, BOSS_SIZE);
+	 
+	let enemy = new PIXI.Graphics();
+    
+    enemy.beginFill(attributes.colour == WHITE ? BLACK : attributes.colour); // Set colour here
+	enemy.lineStyle(rand_range(2, 6), WHITE, 1);
+    enemy.drawPolygon(points);
     enemy.endFill();
+
     enemy.position.set(0, 0);
-	enemy.anchor = {x: 0.5, y: 0.5};
-	enemy.vx = 1;
-	enemy.vy = 0;
+	enemy.anchor = {x: 0, y: 0};
+
+	enemy.vx = enemy.vy = 0;
 	enemy.type = type;
 	enemy.isPlayer = true;
 	enemy.isUser = false;
 	enemy.isBoss = true;
+	
+	enemy.hp = enemy.max_hp = attributes.hp * 5;
+	enemy.max_veloc = attributes.speed * 0.7;
+	enemy.bullet_speed = attributes.bullet_speed;
+
+	enemy.colour = attributes.colour;
 
 	enemy.shots = 5;
 	enemy.previousShot = 0;
 
-	enemy.hitArea = new PIXI.Polygon([0, 0, BOSS_SIZE * 2, 0, BOSS_SIZE * 2, BOSS_SIZE * 2, 0, BOSS_SIZE * 2]);
-	
-	
-	// pop up? scale up? appear from wall?
+	enemy.hitArea = new PIXI.Polygon(points);
 
 	do {
 		enemy.position.x = Math.floor(Math.random() * (WIDTH - PADDING - enemy.width) + PADDING);
 		enemy.position.y = Math.floor(Math.random() * (HEIGHT - PADDING - enemy.height) + PADDING);
 	} while(hit_wall(enemy, obstacles) == true);
 
-	//console.log(enemy.position.x);
+	enemy.scale.set(1e-5, 1e-5);
+	enemy.generation_rate = Math.random() * 8 + 1.5;
 	
 	return enemy;
  
