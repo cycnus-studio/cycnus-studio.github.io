@@ -102,6 +102,8 @@ function hit_wall(sprite, obstacles, return_id = false){
 
     	if(obstacles[polygon_ID].dead == true)
     		continue;
+    	if(sprite.is_ghost != (obstacles.is_ghost == true) && sprite.is_ghost == true)
+    		continue;
 
     	if(sprite.isBullet == true){
 
@@ -179,34 +181,25 @@ function isFullyVisible(a, b, isSprite = true){
 		height: b.height
 	}
 
-	if(isSprite == true){
-        a = a.position;
-        b = b.position;
-    }
+    for(let sprite_point = 0; sprite_point < a.hitArea.points.length; sprite_point += 2){
+		
+		let point_a = {
+			x: a.hitArea.points[sprite_point]     + a.position.x,
+			y: a.hitArea.points[sprite_point + 1] + a.position.y,
+		};
 
-    let directions = [
-    	[0, 0],
-    	[1, 0],
-    	[1, 1],
-    	[0, 1]
-    ]
-
-    for(let [dx, dy] of directions){
-    	
-    	let point_a = {
-    		x: a.x + dx * dimensions_a.width,
-    		y: a.y + dy * dimensions_a.height
-    	};
-    		
-    	let point_b = {
-    		x: b.x + dx * dimensions_b.width,
-    		y: b.y + dy * dimensions_b.height
-    	};
-
-    	if(isVisible(point_a, point_b, false) == false)
-    		return false;
-    	
-    }
+		for(let point = 0; point < b.hitArea.points.length; point += 2){
+			
+			let point_b = {
+				x: b.hitArea.points[point] + b.position.x,
+				y: b.hitArea.points[point + 1]  + b.position.y,
+			};
+			
+			if(isVisible(point_a, point_b, false) == false)
+    			return false;
+		}
+		
+	}
 
     return true;
 
@@ -233,7 +226,7 @@ function in_polygon(sprite, polygon){
 
 	//console.log(polygon)
 
-	if(sprite.height < 5)
+	if(sprite.height <= 6)
 		return area.contains(sprite.position.x - polygon.x, sprite.position.y - polygon.y);
 	
 	for(let sprite_point = 0; sprite_point < sprite.hitArea.points.length; sprite_point += 2){
@@ -292,4 +285,45 @@ function hit_bullet(sprite, bullets){
 	
 	return false;
 	
+}
+
+function in_radius(circle_x, circle_y, radius, sprite){
+
+	// Check if sprite is intersecting a circle at (x, y) with a radius of R
+
+	// Go through the lines of the hitbox
+	// Check if line's closest point to the (x, y) coordinate is less than radius
+
+	for(let sprite_point = 0; sprite_point < sprite.hitArea.points.length; sprite_point += 2){
+
+		let a = {
+			x: sprite.hitArea.points[sprite_point] + sprite.position.x,
+			y: sprite.hitArea.points[sprite_point + 1] + sprite.position.y,
+		};
+		
+		let b = {
+			x: sprite.hitArea.points[(sprite_point + 2) % sprite.hitArea.points.length] + sprite.position.x,
+			y: sprite.hitArea.points[(sprite_point + 3) % sprite.hitArea.points.length] + sprite.position.y,
+		};
+
+		let magnitude = ((circle_x - a.x) * (b.x - a.x) + (circle_y - a.y) * (b.y - a.y)) / ((a.x - b.x)**2 + (a.y - b.y)**2);
+
+		if(magnitude < 0)
+			magnitude = 0;
+		if(magnitude > 1)
+			magnitude = 1;
+
+		let closest = {
+			x: a.x + magnitude * (b.x - a.x),
+			y: a.y + magnitude * (b.y - a.y)
+		}
+
+		if(Math.hypot(closest.x - circle_x, closest.y - circle_y) < radius){
+			return true;
+		}
+
+	}
+
+	return false;
+
 }
