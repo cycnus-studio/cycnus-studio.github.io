@@ -184,7 +184,7 @@ function set_splash_screen(){
     sprite.vy = 0;
 
     sprite.hp = MAX_HEALTH;
-    sprite.shots = 3;
+    sprite.shots = MAX_SHOTS;
 
     sprite.interactive = true;
     sprite.buttonMode = true;
@@ -731,13 +731,16 @@ function generateWave(){
 
     let enemy_count = 0;
     let counter = 0;
+    let highest = 0;
     enemies_left = 0;
 
-    // Max of 4 of the same unit 
+    // Max of 2 of the same unit 
 
     for(let sides = 0; sides < ENEMY_TYPES.length; ++sides){
 
     	if(wave_id >= STARTING_ROUNDS[sides]){
+
+    		highest = Math.max(STARTING_ROUNDS[sides], highest);
 
     		for(let units = 0; units < Math.min(2, Math.ceil((wave_id - STARTING_ROUNDS[sides]) / (sides + 1))); units++){
     			let enemy = generateEnemy(ENEMY_TYPES[sides], rand_range(6, 6 + Math.floor(wave_id / 10)), obstacles);
@@ -758,7 +761,7 @@ function generateWave(){
 
 		generateBossBar();
 		
-		boss = generateBoss("triangle", rand_range(6, 6 + Math.floor(wave_id / 10)), obstacles);
+		boss = generateBoss(ENEMY_TYPES[rand_range(highest == 0 ? 1 : 0, Math.min(3, Math.floor(highest / 10)))], rand_range(6, 6 + Math.floor(wave_id / 10)), obstacles);
 
 		boss.spriteID = enemy_count;
 
@@ -770,7 +773,7 @@ function generateWave(){
 		
 	}
 
-    // Countdown to nex
+    // Countdown to next
 
  }
  
@@ -813,7 +816,7 @@ function shoot(id, src_x, src_y, tgt_x, tgt_y, is_player = false){
             return;
         }
         enemies[id].shots--;
-        enemies[id].previousShot = 5;
+        enemies[id].previousShot = 15;
     }
 
     let unit_size = is_player ? SPRITE_SIZE : enemies[id].height;
@@ -978,7 +981,7 @@ function play(delta){
 
 					if(obstacles[is_hit].explode_on_death == true){
 
-						explode(obstacles[is_hit].position.x, obstacles[is_hit].position.y, 40)
+						explode(obstacles[is_hit].position.x, obstacles[is_hit].position.y, 40, obstacles[is_hit].colour)
 
 			            // Kill player if in radius
 
@@ -1038,7 +1041,6 @@ function play(delta){
     bullets = valid_bullets.slice(0);
 
     let interval = 1;
-	let bullets_shot = Math.min(wave_id * 2, enemies.length);
 
     for(let ID = 0; ID < enemies.length; ID++){
 
@@ -1053,13 +1055,12 @@ function play(delta){
 	        enemies[ID] = getPath(sprite, enemies[ID]);
 	        enemies[ID] = move(enemies[ID], delta, obstacles)[0];
 
-	        if(bullets_shot != 0 && enemies[ID].dead != true && isVisible(enemies[ID], sprite) == true && music.is_on_beat(ID * interval, (ID + 1) * interval)){
+	        if(enemies[ID].dead != true && isVisible(enemies[ID], sprite) == true && music.is_on_beat(ID * interval, (ID + 1) * interval)){
 	            shoot(ID,
 	                enemies[ID].position.x - enemies[ID].width * (1 - enemies[ID].anchor.x),
 	                enemies[ID].position.y - enemies[ID].height * (1 - enemies[ID].anchor.y),
 	                sprite.position.x + sprite.width * (1 - sprite.anchor.x),
 	                sprite.position.y + sprite.height * (1 - sprite.anchor.y));
-				bullets_shot--;
 	        }
 
 	        if(enemies[ID].dead != true && enemies[ID].is_explode == true && in_radius(enemies[ID].position.x, enemies[ID].position.y, 30, sprite)){
