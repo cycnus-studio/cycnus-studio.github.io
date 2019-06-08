@@ -229,44 +229,71 @@ const POINTS = [
 	
 	let attributes = {
 		colour: COLOURS[colour],
-		hp: 2,
-		speed: 3.5,
-		bullet_speed: 4,
-		is_explode: false,
-		is_ghost: false,
-		explode_on_death: false,
+		hp: 1,             // Baseline HP
+		speed: 3.5,        // Baseline Speed 
+		bullet_speed: 4,   // Basline Bullet Speed
+		is_explode: false, // If they can detonate by will
+		is_ghost: false,   // Can go through walls
+		explode_on_death: false, // Will explode when killed
 	}
 
+	// Shape Attributes
+
 	if(type == "triangle"){
-		attributes.bullet_speed += 1;
-		attributes.speed += 1.2;
-		attributes.hp -= 1;
+
+		attributes.bullet_speed += 0.6;
+		attributes.speed += 0.8;
+
 	} else if(type == "square"){
+
 		attributes.hp += 1;
+
 	} else if(type == "pentagon"){
+
 		attributes.speed += 0.6;
 		attributes.is_explode = true;
 		attributes.explode_on_death = true;
+
 	} else if(type == "hexagon"){
-		attributes.speed -= 1;
-		attributes.is_ghost = true;
+
+		attributes.hp += 2;
+		attributes.speed -= 0.8;
+
 	}
 
-	if(colour == 7){
+	// Colour Attributes
+
+	if(colour == 7){ // Yellow
+
 		attributes.bullet_speed += 0.6;
 		attributes.speed += 0.6;
-	} else if(colour == 8){
+
+	} else if(colour == 8){ // Green
+
 		attributes.hp += 1;
-	} else if(colour == 9){
+
+	} else if(colour == 9){ // Blue
+
 		attributes.speed += 1.2;
-	} else if(colour == 10){
+		attributes.bullet_speed -= 0.3;
+
+	} else if(colour == 10){ // Purple
+
 		attributes.hp += 1;
 		attributes.speed += 0.6;
-	} else if(colour == 11){
+
+	} else if(colour == 11){ // Red
+
 		attributes.explode_on_death = true;
+
+	} else if(colour == 12){ // Orange
+		
+		attributes.is_ghost = true;
+
 	}
 
 	return attributes;
+
  }
 
  function generateEnemy(type, colour, obstacles){
@@ -300,7 +327,7 @@ const POINTS = [
 	enemy.explode_on_death = attributes.explode_on_death;
 	enemy.is_ghost = attributes.is_ghost;
 
-	enemy.shots = 5;
+	enemy.shots = 3;
 	enemy.previousShot = 0;
 
 	enemy.hitArea = new PIXI.Polygon(points);
@@ -351,15 +378,20 @@ const POINTS = [
 
 	enemy.colour = attributes.colour;
 
-	enemy.shots = 5;
+	enemy.shots = 6;
 	enemy.previousShot = 0;
 
 	enemy.hitArea = new PIXI.Polygon(points);
+	
+	
+	// pop up? scale up? appear from wall?
 
 	do {
 		enemy.position.x = Math.floor(Math.random() * (WIDTH - PADDING - enemy.width) + PADDING);
 		enemy.position.y = Math.floor(Math.random() * (HEIGHT - PADDING - enemy.height) + PADDING);
 	} while(hit_wall(enemy, obstacles) == true);
+
+	//console.log(enemy.position.x);
 
 	enemy.scale.set(1e-5, 1e-5);
 	enemy.generation_rate = Math.random() * 8 + 1.5;
