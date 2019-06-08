@@ -23,7 +23,8 @@ const BORDER = 5;
 let BULLET_SPEED  = 4;
 let PLAYER_SPEED  = 4;
 let ENEMY_SPEED   = 3.5;
-let MAX_HEALTH    = 5;
+let MAX_HEALTH    = 4;
+let MAX_SHOTS     = 5;
 
 const ROUNDS  = 20;
 
@@ -40,8 +41,6 @@ const STARTING_ROUNDS = [10, 0, 20, 40];
 
 
 function rand_range(low, high){
-  
-  // Generates a random integer in between [low, high]
 
 	let range = high - low + 1;
 
