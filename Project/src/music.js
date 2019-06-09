@@ -8,6 +8,8 @@
  */
 
 
+//https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API
+
 
 class AudioProcessor{
 
@@ -21,27 +23,116 @@ class AudioProcessor{
 		this.audio.playbackRate = 1;
 
         this._context = new AudioContext();
-        this.analyser = this._context.createAnalyser();
         this._source = this._context.createMediaElementSource(this.audio);
         
-        this._source.connect(this.analyser);
-        this.analyser.connect(this._context.destination);
+        this._low_analyzer = this._context.createAnalyser();
+        this._mid_analyzer = this._context.createAnalyser();
+        this._high_analyzer = this._context.createAnalyser();
 
-        this.analyser.fftSize = 32;
+        // Low Filter
 
-        this._buffer = this.analyser.frequencyBinCount;
+        this._low_filter = this._context.createBiquadFilter();
+        this._source.connect(this._low_filter);
+        this._low_filter.connect(this._low_analyzer);
 
-        this._data = new Uint8Array(this._buffer);
-        this._peak = new Uint8Array(this._buffer);
+        this._low_filter.type = 'lowpass';
+        this._low_filter.frequency.value = 50;
+
+        // Mid Filter
+
+        this._mid_filter = this._context.createBiquadFilter();
+        this._source.connect(this._mid_filter);
+        this._mid_filter.connect(this._mid_analyzer);
+
+        this._mid_filter.type = 'bandpass';
+        this._mid_filter.frequency.value = 500;
+
+        // Mid boost
+
+        this._mid_boost = this._context.createBiquadFilter();
+        this._mid_filter.connect(this._mid_boost);
+        this._mid_boost.connect(this._mid_analyzer);
+
+        this._mid_boost.type = 'peaking';
+        this._mid_boost.frequency.value = 500;
+        this._mid_boost.gain.value = 20;
+
+        // High Filter
+
+        this._high_filter = this._context.createBiquadFilter();
+        this._source.connect(this._high_filter);
+        this._high_filter.connect(this._high_analyzer);
+
+        this._high_filter.type = 'highpass';
+        this._high_filter.frequency.value = 2000;
+
+        // High boost
+
+        this._high_boost = this._context.createBiquadFilter();
+        this._high_filter.connect(this._high_boost);
+        this._high_boost.connect(this._high_analyzer);
+
+        this._high_boost.type = 'peaking';
+        this._high_boost.frequency.value = 2000;
+        this._high_boost.gain.value = 20;
+
+        this._source.connect(this._context.destination);
+
+        this._low_analyzer.fftSize = 32;
+        this._mid_analyzer.fftSize = 32;
+        this._high_analyzer.fftSize = 32;
+
+        this._buffer = this._low_analyzer.frequencyBinCount;
+
+        this._low_data   = new Uint8Array(this._buffer);
+        this._low_sum    = new Array(this._buffer).fill(0);
+        this._low_frames = new Array(this._buffer).fill(1e-9);
+
+        this._mid_data   = new Uint8Array(this._buffer);
+        this._mid_sum    = new Array(this._buffer).fill(0);
+        this._mid_frames = new Array(this._buffer).fill(1e-9);
+
+        this._high_data   = new Uint8Array(this._buffer);
+        this._high_sum    = new Array(this._buffer).fill(0);
+        this._high_frames = new Array(this._buffer).fill(1e-9);
 
     }
-	
-	speedUp(delta){
-		this.audio.playbackRate += delta;
-	}
 
     update(){
-        this.analyser.getByteFrequencyData(this._data);
+    	
+        this._low_analyzer.getByteFrequencyData(this._low_data);
+        this._mid_analyzer.getByteFrequencyData(this._mid_data);
+        this._high_analyzer.getByteFrequencyData(this._high_data);
+
+        for(let position = 0; position < this._buffer; ++position){
+
+        	let data, sums, frames;
+
+	    	if(position < 3){
+
+	    		data = this._low_data;
+	    		sums = this._low_sum;
+	    		frames = this._low_frames;
+
+	    	} else if(position < 7) {
+
+	    		data = this._mid_data;
+	    		sums = this._mid_sum;
+	    		frames = this._mid_frames;
+
+	    	} else {
+
+	    		data = this._high_data;
+	    		sums = this._high_sum;
+	    		frames = this._high_frames;
+
+	    	}
+
+	    	sums[position] += data[position];
+	    	frames[position]++;
+
+        }
+
     }
 
     play(){
@@ -52,38 +143,49 @@ class AudioProcessor{
         this.audio.pause();
     }
 
-    get _normalized(){
+    is_on_beat(position){
 
-        let data = [];
-        let highest = 1e-9; // Prevent division by 0
-        
-        for(let i = 0; i < this._buffer; ++i)
-            highest = Math.max(highest, this._data[i]);
-        
-        for(let i = 0; i < this._buffer; ++i)
-            data.push(this._data[i] / highest);
-        
-        return data;
-
-    }
-
-    is_on_beat(left, right){
+    	position = Math.min(position, this._buffer);
       
-      const THRESHHOLD = 0.95;
-      const DECAY = 0.0001;
+    	const THRESHHOLD = 3;
 
-      let data = this._normalized;
+    	let data, sums, frames, DECAY;
 
-      for(let i = left; i < Math.min(this._buffer, right); ++i){
+    	if(position < 3){
 
-          if(data[i] > THRESHHOLD * (i / 100) && data[i] > this._peak[i]){
-              this._peak[i] = data[i];
-              return true;
-          }
-          this._peak[i] -= DECAY;
-      }
+    		data = this._low_data;
+    		sums = this._low_sum;
+    		frames = this._low_frames;
+    		DECAY = 0.3;
 
-      return false;
+    	} else if(position < 9) {
+
+    		data = this._mid_data;
+    		sums = this._mid_sum;
+    		frames = this._mid_frames;
+    		DECAY = 0.6;
+
+    	} else {
+
+    		data = this._high_data;
+    		sums = this._high_sum;
+    		frames = this._high_frames;
+    		DECAY = 0.9;
+
+    	}
+
+    	let avg = sums[position] / frames[position] - DECAY * frames[position];
+
+    	if(avg != 0 && data[position] - avg > THRESHHOLD) {
+
+    		frames[position] = 1e-9;
+    		sums[position] = 0;
+
+      		return true;
+
+      	}
+
+    	return false;
     
     }
 
