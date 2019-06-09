@@ -2,14 +2,15 @@
 			
 @font-face {
 	font-family: "Modern Sans";
-	src: url("../fonts/ModernSans-Light.otf") format("opentype");
+	src: url("../fonts/Modern_Sans_Light.otf") format("opentype");
 }
 
 @font-face {
-	font-family: "Pixellari";
-	src: url("../fonts/Pixellari.ttf");
+	font-family: "Secret Code";
+	src: url("../fonts/Secret_Code.ttf");
 }
 
-h1 {
-	font-family: "Pixellari";
+@font-face {
+	font-family: "Roboto Th";
+	src: url("../fonts/Roboto_Thin.ttf");
 }
