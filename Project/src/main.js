@@ -20,36 +20,39 @@ function loadProgressHandler(loader, resource) {
 
 }
 
-/*
-    
-    UPDATE: okay nvm don't set them globally, all it does is create weird issues when recreating the scenes
-    Keep them as local as possible
-*/
-
-let splash, main_menu, menu, play_screen, zone, bullet_container; // Set all containers, this is the different scenes the game will have
+let splash, main_menu, menu, play_screen, zone, bullet_container, mine_container; // Set all containers, this is the different scenes the game will have
 
 /* Main idea 
+
     app.stage is your main scene, we add and remove containers/sprites from it as we please
+
     For different scenes, we'll need to add all sprites related to a scene into a container
         
         To display, simply do:
+
             app.stage.addChild(scene_name);
         
         To hide it, simply do:
+
             app.stage.removeChild(scene_name);
+
+
     IMPORTANT NOTE: EVERY SPRITE CAN ONLY BELONG TO **1** CONTAINER
+
                     EVERY TIME YOU ASSIGN IT TO ANOTHER CONTAINER, IT LOSES MEMBERSHIP OF ITS PREVIOUS CONTAINER
+
 */
 
-let enemies = [];
-let bullets = [];
+let enemies   = [];
+let bullets   = [];
 let obstacles = [];
+let mines     = [];
 
-let sprite, title, start, round_title, health_bar, active_health, pause, boss_bar, boss_health, boss; // Set all sprites here
+let sprite, title, start, round_title, health_bar, active_health, pause, boss_bar, boss_health, boss, point_title; // Set all sprites here
 let state;
 
 let enemies_left = 0;
-let killed = 0;
+let user_score   = 0;
 
 let music = new AudioProcessor();
 
@@ -58,25 +61,16 @@ music.pause();
 // style all text in game with this (you can style it with http://pixijs.download/release/docs/PIXI.TextStyle.html)
 
 let style = new PIXI.TextStyle({
-    fontFamily: "Pixellari",
+    fontFamily: "Roboto Th",
     fontSize: 72,
-    fill: 0xFFFFFF,
-    strokeThickness: 16,
-    align: "center",
-});
-
-let highlighted_style = new PIXI.TextStyle({
-    fontFamily: "Pixellari",
-    fontSize: 72,
-    fill: 0xFFFFFF, // Changed
-    strokeThickness: 16,
+    fill: WHITE,
     align: "center",
 });
 
 let round_style = new PIXI.TextStyle({
-    fontFamily: "Pixellari",
+    fontFamily: "Roboto Th",
     fontSize: 36,
-    fill: 0x999999,
+    fill: WHITE,
     strokeThickness: 0,
     align: "center",
 });
@@ -99,12 +93,13 @@ function setup(){
 
     });
 
-    console.log("Setup doned");
+    console.log("Setup done");
 
     //Capture the keyboard arrow keys + WASD
 
     keyboard_listen();
     set_title_screen();
+    setup_powerups();
 
     state = play;
 
@@ -119,11 +114,18 @@ function set_splash_screen(){
     let title = new PIXI.Text("cycnus", {
         fontFamily: "Modern Sans",
         fontSize: 36,
-        fill: 0x000000,
+        fill: WHITE,
     });
 
     title.anchor.set(0.5, 0.5);
     title.position.set(MID_WIDTH, MID_HEIGHT);
+    title.alpha = 0;
+
+    app.ticker.add(function fade_in(){
+    	title.alpha += (1 - title.alpha) / 8;
+    	if(1 - title.alpha < 1e-2)
+    		app.ticker.remove(fade_in);
+    });
 
     splash.addChild(title);
 
@@ -133,8 +135,8 @@ function set_splash_screen(){
 
     zone = new PIXI.Container();
     zone.alpha = 0;
-    zone.interactive = true;
-    zone.buttonMode  = true;
+    //zone.interactive = true;
+    //zone.buttonMode  = true;
 
     zone.on('mousedown', (event) => {
 
@@ -148,8 +150,8 @@ function set_splash_screen(){
     });
 
     let area = new PIXI.Graphics();
-    area.lineStyle(1, 0xFFFFFF, 1);
-    area.beginFill(0x000000);
+    area.lineStyle(1, WHITE, 1);
+    area.beginFill(BLACK);
     area.drawRect(0, 0, WIDTH - PADDING * 2, HEIGHT - PADDING * 2);
     area.endFill();
     area.position.set(PADDING, PADDING);
@@ -188,15 +190,37 @@ function set_splash_screen(){
 
     pause = new PIXI.Text("❚❚", round_style);
     
-    pause.position.x = WIDTH + pause.width + 20;
-    pause.position.y = 20; // set x and y
+    pause.position.set(WIDTH + pause.width + 20, pause.height / 2 + 20);
+    pause.anchor.set(0.5, 0.5);
 
     pause.interactive = true;
     pause.buttonMode = true;
 
     pause.on('click', (event) => {
         music.pause();
-        set_title_screen();
+        set_title_screen("resume");
+        zone.interactive = false;
+        zone.buttonMode = false;
+    });
+
+    pause.on('mouseover', (event) => {
+    	app.ticker.add(function zoom(){
+    		pause.scale.x += (1.1 - pause.scale.x) / 4;
+    		pause.scale.y += (1.1 - pause.scale.y) / 4;
+    		if(1.1 - pause.scale.x < 1e-2)
+    			app.ticker.remove(zoom);
+    	})
+    });
+
+    pause.on('mouseout', (event) => {
+    	app.ticker.add(function zoom(){
+    		pause.scale.x += (1 - pause.scale.x) / 4;
+    		pause.scale.y += (1 - pause.scale.y) / 4;
+    		if(pause.scale.x - 1 < 1e-2){
+    			pause.scale.set(1, 1);
+    			app.ticker.remove(zoom);
+    		}
+    	})
     });
 
 
@@ -207,7 +231,6 @@ function set_splash_screen(){
     round_title.position.set(-round_title.width - 30, HEIGHT - PADDING * 0.5);
 
     zone.addChild(area);
-    zone.addChild(sprite);
     zone.addChild(pause);
     zone.addChild(round_title);
 
@@ -215,6 +238,13 @@ function set_splash_screen(){
 
     bullet_container = new PIXI.Container();
     zone.addChild(bullet_container);
+
+    // Create mine container
+
+    mine_container = new PIXI.Container();
+    bullet_container.addChild(mine_container);
+
+    zone.addChild(sprite);
 
     app.stage.addChild(zone);
 
@@ -267,14 +297,15 @@ function start_game(){
 		 *
 		 */
 		
+		initialize();
 
 		for(let wall of get_obstacles()){
 			
 			let shape = new PIXI.Polygon(wall.points);
 
 			let obstacle = new PIXI.Graphics();
-			obstacle.lineStyle(10, 0xFFFFFF, 1);
-			obstacle.beginFill(0x000000); // Set colour here
+			obstacle.lineStyle(10, WHITE, 1);
+			obstacle.beginFill(BLACK); // Set colour here
 			obstacle.drawPolygon(shape.points.slice(0));
 			obstacle.endFill();
 
@@ -298,10 +329,14 @@ function start_game(){
 		}
 
         generateHealthBar();
+        generateScore();
 
         obstacles.push(sprite);
 
     }
+
+    zone.interactive = true;
+    zone.buttonMode = true;
 
     app.ticker.add(gameLoop);
 
@@ -313,7 +348,7 @@ function start_game(){
 
 let is_title = false; // Prevent duplicate menus
 
-function set_title_screen(){
+function set_title_screen(message = "play"){
 
     if(is_title == true)
         return;
@@ -324,82 +359,191 @@ function set_title_screen(){
 
     let main_menu = new PIXI.Container();
 
+    // Add black background
+
+    let background = new PIXI.Graphics();
+
+    background.beginFill(BLACK);
+    background.drawRect(0, 0, WIDTH, HEIGHT);
+    background.endFill();
+
+    main_menu.addChild(background);
+
+    // Brightness icon
+
+    let brightness_icon = new PIXI.Sprite(PIXI.loader.resources["https://cycnus-studio.github.io/Project/img/brightness.png"].texture);
+    brightness_icon.anchor.set(0.5, 0.5);
+    brightness_icon.position.set(MID_WIDTH, MID_HEIGHT);
+    brightness_icon.scale.set(0.6, 0.6);
+
+    main_menu.addChild(brightness_icon);
+
     // text
 
-    let title = new PIXI.Text("NIGHTLIGHT", style);
+    let title = new PIXI.Text("glow", style);
     title.anchor.set(0.5, 0.5);
-    title.position.set(MID_WIDTH, -MID_HEIGHT + MID_HEIGHT / 2);
-
-    let start = new PIXI.Text("PLAY", style);
-    start.anchor.set(0.5, 0.5);
-    start.position.set(MID_WIDTH, MID_HEIGHT + MID_HEIGHT * 3 / 2);
+    title.position.set(WIDTH - title.width - 20, HEIGHT - title.height - 20);
 
 
-    start.interactive = true; 
-    start.buttonMode = true;
-    //start.cursor = 'pointer';
+    let start_white = new PIXI.Text(message, style);
+    start_white.anchor.set(0.5, 0.5);
+    start_white.position.set(MID_WIDTH, MID_HEIGHT);
 
-    app.ticker.add(function move_in(delta) {
+    let start_black = new PIXI.Text(message, style);
+    start_black.anchor.set(0.5, 0.5);
+    start_black.position.set(MID_WIDTH, MID_HEIGHT);
 
-        title.y += delta * 20;
-        start.y -= delta * 20;
+    start = new PIXI.Container();
 
-        if(zone.alpha > 0)
-            zone.alpha -= delta / 10;
+    start.addChild(start_black);
+    start.addChild(start_white);
 
-        if(title.y >= MID_HEIGHT / 2 && zone.alpha <= 0){
-            app.ticker.remove(move_in);
-            zone.visible = false;
+    let hover, degrees = 0;
+
+    app.ticker.add(hover = function(){
+    	brightness_icon.position.y += Math.sin(degrees * Math.PI / 180) / 10;
+    	start.position.y += Math.sin(degrees * Math.PI / 180) / 10;
+    	degrees++;
+    	if(degrees > 360)
+    		degrees -= 360;
+    })
+
+    // text mask
+
+    let mask = new PIXI.Graphics();
+    mask.beginFill(BLACK);
+    mask.drawRect(0, 0, MID_WIDTH, HEIGHT);
+    mask.endFill();
+
+    let filter = new PIXI.filters.ColorMatrixFilter();
+    start_black.filters = [filter];
+
+    start_white.mask = mask;
+
+    filter.negative();
+
+    main_menu.alpha = 1e-5;
+
+    app.ticker.add(function fade_in(delta) {
+
+        main_menu.alpha += (1 - main_menu.alpha) / 8;
+
+        if(1 - main_menu.alpha < 1e-2){
+            app.ticker.remove(fade_in);
         }
 
     });
 
+    start.interactive = true; 
+    start.buttonMode = true;
+
     start.on('click', (event) => {
 
-        zone.visible = true;
+		zone.visible = true;
+		zone.alpha = 1;
+		main_menu.alpha = 1;
 
-        app.ticker.add(function move_out(delta) {
+		if(new_game == true)
+            music = new AudioProcessor();
+        else
+            music.play();
 
-            title.y -= delta * 20;
-            start.y += delta * 20;
+        start_game();
 
-            if(zone.alpha < 1)
-                zone.alpha += delta / 10;
+		app.ticker.add(function fade_out(delta) {
 
-            if(title.y <= -MID_HEIGHT / 2 && zone.alpha >= 1){
+            main_menu.alpha -= main_menu.alpha / 4;
 
-                // Removing the function in the ticker
+            if(main_menu.alpha < 1e-5){
 
-                app.ticker.remove(move_out);
+            	app.ticker.remove(hover);
+
+            	zone.alpha = 1;
+
+                app.ticker.remove(fade_out);
                 app.stage.removeChild(main_menu);
                 main_menu.visible = false;
                 is_title = false;
-
-                if(new_game == true)
-                    music = new AudioProcessor();
-                else
-                    music.play();
-
-                start_game();
 
             }
 
         });
 
-    });
+	});
 
-    start.on('mouseover', (event) => {
-       start.style = highlighted_style;
+	start.on('mouseover', (event) => {
+    	app.ticker.add(function zoom(){
+    		start_black.scale.x += (1.1 - start_black.scale.x) / 4;
+    		start_black.scale.y += (1.1 - start_black.scale.y) / 4;
+    		start_white.scale.x += (1.1 - start_white.scale.x) / 4;
+    		start_white.scale.y += (1.1 - start_white.scale.y) / 4;
+    		if(1.1 - start_black.scale.x < 1e-2)
+    			app.ticker.remove(zoom);
+    	})
     });
 
     start.on('mouseout', (event) => {
-       start.style = style;
+    	app.ticker.add(function zoom(){
+    		start_black.scale.x += (1 - start_black.scale.x) / 4;
+    		start_black.scale.y += (1 - start_black.scale.y) / 4;
+    		start_white.scale.x += (1 - start_white.scale.x) / 4;
+    		start_white.scale.y += (1 - start_white.scale.y) / 4;
+    		if(start_black.scale.x - 1 < 1e-2){
+    			start_black.scale.set(1, 1);
+    			start_white.scale.set(1, 1);
+    			app.ticker.remove(zoom);
+    		}
+    	})
     });
 
     main_menu.addChild(start);
+    main_menu.addChild(mask);
     main_menu.addChild(title);
 
     app.stage.addChild(main_menu);
+
+}
+
+function initialize(){
+
+	sprite.position.x = MID_WIDTH;
+    sprite.position.y = MID_HEIGHT; // set x and y
+
+    sprite.vx = 0;
+    sprite.vy = 0;
+
+    sprite.hp = MAX_HEALTH;
+    sprite.shots = MAX_SHOTS;
+
+    if(enemies.length != 0)
+    	round_title.text = "Round 1";
+
+    for(let enemy of enemies)
+    	zone.removeChild(enemy);
+    for(let obstacle of obstacles)
+    	zone.removeChild(obstacle);
+    for(let bullet of bullets)
+    	bullet_container.removeChild(bullet);
+    for(let mine of mines)
+    	mine_container.removeChild(mine);
+
+    zone.addChild(sprite)
+  	zone.removeChild(point_title)
+    zone.removeChild(boss_bar)
+    zone.removeChild(boss_health)
+    zone.removeChild(health_bar)
+    zone.removeChild(active_health);
+
+    enemies = [];
+    obstacles = [];
+    bullets = [];
+    mines = [];
+    user_score = 0;
+    enemies_left = 0;
+    wave_id = 0;
+
+    is_loaded = false;
+    is_ready_to_load = true;
 
 }
 
@@ -407,11 +551,11 @@ function set_game_over(){
 
     music.pause();
 
-    let title = new PIXI.Text("GAME OVER", style);
+    /*let title = new PIXI.Text("game over", style);
     title.anchor.set(0.5, 0.5);
     title.position.set(MID_WIDTH, -MID_HEIGHT + MID_HEIGHT / 2);
 
-    let back = new PIXI.Text("RESTART", style);
+    let back = new PIXI.Text("restart", style);
     back.anchor.set(0.5, 0.5);
     back.position.set(MID_WIDTH, MID_HEIGHT + MID_HEIGHT * 3 / 2);
 
@@ -449,19 +593,32 @@ function set_game_over(){
     });
 
     back.on('mouseover', (event) => {
-       back.style = highlighted_style;
-
+    	app.ticker.add(function zoom(){
+    		back.scale.x += (1.1 - back.scale.x) / 4;
+    		back.scale.y += (1.1 - back.scale.y) / 4;
+    		if(1.1 - back.scale.x < 1e-2)
+    			app.ticker.remove(zoom);
+    	})
     });
 
     back.on('mouseout', (event) => {
-       back.style = style;
-    });
+    	app.ticker.add(function zoom(){
+    		back.scale.x += (1 - back.scale.x) / 4;
+    		back.scale.y += (1 - back.scale.y) / 4;
+    		if(back.scale.x - 1 < 1e-2){
+    			back.scale.set(1, 1);
+    			app.ticker.remove(zoom);
+    		}
+    	})
+    });*/
+
+    new_game = true;
+    set_title_screen("restart");
 
 }
 
 
 
-let wave_id = 0;
 
 function move_out(){
 
@@ -481,13 +638,25 @@ function move_out(){
 
 }
 
+function generateScore(){
+
+	point_title = new PIXI.Text("0", round_style);
+    point_title.position.set(600 - point_title.width, HEIGHT - point_title.height - 20);
+	zone.addChild(point_title);
+
+	point_title.update = function(){
+		point_title.text = `${user_score}`;
+	}
+
+}
+
 function generateHealthBar(){
 
     // Outline
 
     health_bar = new PIXI.Graphics();
-    health_bar.beginFill(0x000000);
-    health_bar.lineStyle(1, 0xFFFFFF);
+    health_bar.beginFill(BLACK);
+    health_bar.lineStyle(1, WHITE);
     health_bar.drawRect(0, 0, HEALTH_WIDTH, HEALTH_HEIGHT);
     health_bar.endFill();
     health_bar.position.set(WIDTH + HEALTH_WIDTH + 20, HEIGHT - HEALTH_HEIGHT - 20);
@@ -495,7 +664,7 @@ function generateHealthBar(){
     // Active health portion
 
     active_health = new PIXI.Graphics();
-    active_health.lineStyle(1, 0xFFFFFF);
+    active_health.lineStyle(1, WHITE);
     active_health.drawRect(0, 0, 1, HEALTH_HEIGHT);
 
     active_health.position.set(WIDTH + HEALTH_WIDTH * 2 + 20, HEIGHT - HEALTH_HEIGHT - 20);
@@ -504,7 +673,7 @@ function generateHealthBar(){
 
     app.ticker.add(function move_in(delta){
 
-        let distance = Math.abs(health_bar.position.x - target) / 8;
+        let distance = Math.abs(health_bar.position.x - target) / 4;
         
         health_bar.position.x -= distance;
         active_health.position.x -= distance;
@@ -513,18 +682,7 @@ function generateHealthBar(){
 
             app.ticker.remove(move_in);
 
-            app.ticker.add(function move_health(delta){
-
-                let distance = (health_bar.width - active_health.width) / 8;
-				
-                active_health.width += distance;
-				active_health.position.x += (health_bar.position.x + health_bar.width - active_health.width) - active_health.getBounds().x;
-
-                if(Math.abs(health_bar.width - active_health.width) < 0.5){
-                    app.ticker.remove(move_health);
-                }
-
-            });
+            health_update();
 
         }
 
@@ -552,8 +710,8 @@ function generateBossBar(){
     // Outline
 
     boss_bar = new PIXI.Graphics();
-    boss_bar.beginFill(0x000000);
-    boss_bar.lineStyle(1, 0xFFFFFF);
+    boss_bar.beginFill(BLACK);
+    boss_bar.lineStyle(1, WHITE);
     boss_bar.drawRect(0, 0, HEALTH_WIDTH, HEALTH_HEIGHT);
     boss_bar.endFill();
     boss_bar.position.set(-HEALTH_WIDTH - 20, 20);
@@ -561,7 +719,7 @@ function generateBossBar(){
     // Active health portion
 
     boss_health = new PIXI.Graphics();
-    boss_health.lineStyle(1, 0xFFFFFF);
+    boss_health.lineStyle(1, WHITE);
     boss_health.drawRect(0, 0, 1, HEALTH_HEIGHT);
 
     boss_health.position.set(-HEALTH_WIDTH - 20, 20);
@@ -579,18 +737,7 @@ function generateBossBar(){
 
             app.ticker.remove(move_in);
 
-            app.ticker.add(function move_health(delta){
-
-                let distance = (boss_bar.width - boss_health.width) / 4;
-				
-                boss_health.width += distance;
-				boss_health.position.x += boss_bar.position.x - boss_health.getBounds().x;
-
-                if(Math.abs(boss_bar.width - boss_health.width) < 0.5){
-                    app.ticker.remove(move_health);
-                }
-
-            });
+            updateBossBar();
 
         }
 
@@ -632,7 +779,7 @@ function health_update(){
         active_health.width += (target_width - active_health.width) / 4;
 		active_health.position.x += (health_bar.position.x + health_bar.width - active_health.width) - active_health.getBounds().x;
         
-        if(Math.abs(target_width - active_health.width) < 0.02){
+        if(Math.abs(target_width - active_health.width) < 0.001){
             app.ticker.remove(move_health);
             still_running = false;
         }
@@ -658,7 +805,7 @@ function updateBossBar(){
         boss_health.width += (target_width - boss_health.width) / 4;
 		boss_health.position.x += boss_bar.position.x - boss_health.getBounds().x;
         
-        if(Math.abs(target_width - boss_health.width) < 0.02){
+        if(Math.abs(target_width - boss_health.width) < 0.001){
             app.ticker.remove(move_boss_health);
             boss_still_running = false;
         }
@@ -692,7 +839,7 @@ function boss_bar_out(){
 
 function generateTitle(number){
 
-    round_title.text = `ROUND ${wave_id}`;
+    round_title.text = `Round ${wave_id}`;
 
     app.ticker.add(function move_title_in(delta) {
 
@@ -720,40 +867,21 @@ function generateWave(){
     generateTitle(wave_id++);
 
     let enemy_count = 0;
-    let counter = 0;
     let highest = 0;
     enemies_left = 0;
 
-    // Max of 2 of the same unit 
-
-    for(let sides = 0; sides < ENEMY_TYPES.length; ++sides){
-
-    	if(wave_id >= STARTING_ROUNDS[sides]){
-
-    		highest = Math.max(STARTING_ROUNDS[sides], highest);
-
-    		for(let units = 0; units < Math.min(2, Math.ceil((wave_id - STARTING_ROUNDS[sides]) / (sides + 1))); units++){
-    			let enemy = generateEnemy(ENEMY_TYPES[sides], rand_range(6, 6 + Math.floor(wave_id / 10)), obstacles);
-    			enemy.spriteID = counter++;
-
-		        zone.addChild(enemy);
-		        obstacles.push(enemy);
-		        enemies.push(enemy);
-		        enemy_count++;
-		        enemies_left++;
-    		}
-
-    	}
-
-    }
-	
-	if(wave_id % 5 == 4){
+    if(wave_id % 5 == 4){
 
 		generateBossBar();
-		
+
+		for(let sides = 0; sides < ENEMY_TYPES.length - 1; ++sides){
+			if(wave_id > STARTING_ROUNDS[sides])
+				highest = Math.max(STARTING_ROUNDS[sides], highest);
+		}
+
 		boss = generateBoss(ENEMY_TYPES[rand_range(highest == 0 ? 1 : 0, Math.min(3, Math.floor(highest / 10)))], rand_range(6, 6 + Math.floor(wave_id / 10)), obstacles);
 
-		boss.spriteID = enemy_count;
+		boss.spriteID = enemy_count++;
 
 		zone.addChild(boss);
 		obstacles.push(boss);
@@ -762,6 +890,27 @@ function generateWave(){
 		enemies_left++;
 		
 	}
+
+    // Max of 2 of the same unit 
+
+    for(let sides = 0; sides < ENEMY_TYPES.length - 1; ++sides){
+
+    	if(wave_id > STARTING_ROUNDS[sides]){
+
+    		for(let units = 0; units < Math.min(2, Math.ceil((wave_id - STARTING_ROUNDS[sides]) / (sides + 1))); units++){
+    			let enemy = generateEnemy(ENEMY_TYPES[sides], Math.min(12, rand_range(6, 6 + Math.floor((wave_id - 5) / 8))), obstacles);
+    			enemy.spriteID = enemy_count++;
+
+		        zone.addChild(enemy);
+		        obstacles.push(enemy);
+		        enemies.push(enemy);
+		        
+		        enemies_left++;
+    		}
+
+    	}
+
+    }
 
     // Countdown to next
 
@@ -793,20 +942,23 @@ function clearDeleted(){
 
 }
 
-function shoot(id, src_x, src_y, tgt_x, tgt_y, is_player = false){
+function shoot(id, src_x, src_y, tgt_x, tgt_y, is_player = false, ignore_constraints = false){
+
+	if(is_player == true && (tgt_x < PADDING || tgt_x > WIDTH - PADDING || tgt_y < PADDING || tgt_y > HEIGHT - PADDING))
+    	return;
 
     if(is_player == true){
         if(sprite.shots <= 0)
             return;
         sprite.shots--;
-    } else {
+    } else if(ignore_constraints == false){
         if(enemies[id].shots <= 0)
             return;
         if(enemies[id].previousShot-- > 0){
             return;
         }
         enemies[id].shots--;
-        enemies[id].previousShot = 15;
+        enemies[id].previousShot = 5;
     }
 
     let unit_size = is_player ? SPRITE_SIZE : enemies[id].height;
@@ -818,9 +970,6 @@ function shoot(id, src_x, src_y, tgt_x, tgt_y, is_player = false){
 
     let mx = tgt_x - src_x - unit_size;
     let my = tgt_y - src_y - unit_size;
-
-    if(is_player == true && Math.abs(mx) <= SPRITE_SIZE && Math.abs(my) <= SPRITE_SIZE)
-        return;
 
     bullet.x = src_x + unit_size;
     bullet.y = src_y + unit_size;
@@ -877,7 +1026,6 @@ function explode(x, y, radius, colour = 0xBC1E1E){
 
 // Actual loop
 
-let previous = 0;
 let is_loaded = false;
 let is_ready_to_load = true;
 
@@ -901,6 +1049,83 @@ function play(delta){
 
     music.update();
 
+    // Powerups
+
+    if(freeze_duration-- > 0){
+    	slowing_factor /= 1.05;
+    } else if(freeze_duration <= 0 && slowing_factor < 1){
+    	slowing_factor *= 1.05;
+    	freeze_duration = 0;
+    } else {
+    	slowing_factor = 1;
+    }
+
+    for(let ID = 0; ID < mines.length; ++ID){
+
+    	if(mines[ID].detonated == true)
+    		continue;
+
+    	if(mines[ID].scale.x != 1){
+    		
+    		mines[ID].scale.x += (1 - mines[ID].scale.x) / 8;
+    		mines[ID].scale.y += (1 - mines[ID].scale.y) / 8;
+
+    		if(1 - mines[ID].scale.x < 1e-2){
+    			mines[ID].scale.set(1, 1);
+    		}
+
+    		continue;
+    	}
+
+
+    	for(let enemy_ID = 0; enemy_ID < enemies.length; ++enemy_ID){
+    		
+    		if(enemies[enemy_ID].dead === true)
+    			continue;
+
+    		if(in_polygon(mines[ID], enemies[enemy_ID]) == true){
+
+    			mines[ID].detonated = true;
+    			mines_left--;
+
+    			explode(mines[ID].position.x, mines[ID].position.y, mines[ID].blast_radius, sprite.colour);
+
+    			// Find all enemies in blast radius
+
+    			for(;enemy_ID < enemies.length; ++enemy_ID){
+
+    				if(enemies[enemy_ID].dead === true)
+    					continue;
+
+    				if(in_radius(mines[ID].position.x, mines[ID].position.y, mines[ID].blast_radius, enemies[enemy_ID])){
+						
+						enemies[enemy_ID].lose_hp(enemies[enemy_ID].hp);
+
+    				}
+
+    			}
+
+    			app.ticker.add(function pop(delta){
+					mines[ID].scale.x /= 1.2;
+					mines[ID].scale.y /= 1.2;
+
+					if(mines[ID].scale.x < 0.01){
+						mines[ID].visible = false;
+
+						mine_container.removeChild(mines[ID]);
+						app.ticker.remove(pop);
+					}
+
+				});
+
+    			break;
+
+    		}
+    	
+    	}
+
+    }
+
     sprite = move(sprite, delta, obstacles)[0];
 
     // Draw bullets
@@ -923,31 +1148,8 @@ function play(delta){
         if(is_hit === false && hit_player == false){
 			valid_bullets.push(new_bullet);
         } else {
-            // maybe add a small explosion animation here
 
-            let explosion_circle = new PIXI.Graphics();
-
-	        if(bullets[ID].spriteID < enemies.length)
-	            explosion_circle.beginFill(bullets[ID].isPlayerShot ? sprite.colour : enemies[bullets[ID].spriteID].colour); // Set colour here
-	        else
-	            explosion_circle.beginFill(sprite.colour);
-
-	        explosion_circle.drawCircle(bullets[ID].position.x, bullets[ID].position.y, Math.floor(Math.random() * 15 + 5));
-	        explosion_circle.endFill();
-
-	        zone.addChild(explosion_circle);
-
-	        app.ticker.add(function boom(delta) {
-
-	            explosion_circle.alpha -= delta * 0.1;
-
-	            if(explosion_circle.alpha <= 0){
-	                app.ticker.remove(boom);
-	                explosion_circle.alpha.visible = false;
-	                zone.removeChild(explosion_circle);
-	            }
-
-	        });
+        	explode(bullets[ID].position.x, bullets[ID].position.y, rand_range(5, 20), bullets[ID].isPlayerShot ? sprite.colour : enemies[Math.min(enemies.length - 1, bullets[ID].spriteID)].colour);
 
             if(hit_player == true){
 
@@ -961,54 +1163,7 @@ function play(delta){
 
             } else if(is_hit !== true && obstacles[is_hit].isObstacle !== true && obstacles[is_hit].scale.x == 1){
 				
-				obstacles[is_hit].hp--;
-
-				if(obstacles[is_hit].isBoss == true){
-					updateBossBar();
-				} 
-				
-				if(obstacles[is_hit].hp <= 0){
-
-					if(obstacles[is_hit].explode_on_death == true){
-
-						explode(obstacles[is_hit].position.x, obstacles[is_hit].position.y, 40, obstacles[is_hit].colour)
-
-			            // Kill player if in radius
-
-			            if(in_radius(obstacles[is_hit].position.x, obstacles[is_hit].position.y, 40, sprite)){
-			            	sprite.hp--;
-			                if(sprite.hp == 0){
-			                    setTimeout(set_game_over, 1000);
-			                    app.ticker.remove(gameLoop);
-			                }
-			                health_update();
-			            }
-
-					}
-
-					app.ticker.add(function pop(delta){
-						obstacles[is_hit].scale.x /= 1.2;
-						obstacles[is_hit].scale.y /= 1.2;
-
-						if(obstacles[is_hit].scale.x < 0.01){
-							obstacles[is_hit].visible = false;
-							enemies_left--;
-							killed++;
-							point_counter();
-
-							zone.removeChild(obstacles[is_hit]);
-							app.ticker.remove(pop);
-						}
-
-					})
-
-					obstacles[is_hit].dead = true;
-
-					if(obstacles[is_hit].isBoss == true){
-						boss_bar_out();
-					}
-
-				}
+				obstacles[is_hit].lose_hp(1);
 
             }
 
@@ -1022,7 +1177,7 @@ function play(delta){
 					continue;
                 if(enemies[bullets[ID].spriteID].dead)
                     continue;
-				enemies[bullets[ID].spriteID].shots = Math.min(5, enemies[bullets[ID].spriteID].shots + 1);
+				enemies[bullets[ID].spriteID].shots = Math.min(3, enemies[bullets[ID].spriteID].shots + 1);
             }
 			
         }
@@ -1046,42 +1201,47 @@ function play(delta){
 	        enemies[ID] = getPath(sprite, enemies[ID]);
 	        enemies[ID] = move(enemies[ID], delta, obstacles)[0];
 
-	        if(enemies[ID].dead != true && isVisible(enemies[ID], sprite) == true && music.is_on_beat(ID * interval, (ID + 1) * interval)){
-	            shoot(ID,
-	                enemies[ID].position.x - enemies[ID].width * (1 - enemies[ID].anchor.x),
-	                enemies[ID].position.y - enemies[ID].height * (1 - enemies[ID].anchor.y),
-	                sprite.position.x + sprite.width * (1 - sprite.anchor.x),
-	                sprite.position.y + sprite.height * (1 - sprite.anchor.y));
+	        if(enemies[ID].dead != true && music.is_on_beat(Math.min(ID * 2)) && slowing_factor > 1e-4){
+	            
+	        	if(isVisible(enemies[ID], sprite) == true){
+		            shoot(ID,
+		                enemies[ID].position.x - enemies[ID].width * (1 - enemies[ID].anchor.x),
+		                enemies[ID].position.y - enemies[ID].height * (1 - enemies[ID].anchor.y),
+		                sprite.position.x + sprite.width * (1 - sprite.anchor.x),
+		                sprite.position.y + sprite.height * (1 - sprite.anchor.y));
+		        }
+
+		        if(enemies[ID].isBoss === true && enemies[ID].previousSpread-- <= 0){
+
+		        	enemies[ID].previousSpread = 15;
+
+				 	let offset = enemies[ID].offset;
+				 	let sides  = enemies[ID].hitArea.points.length / 2;
+
+				 	for(let side = 0; side < sides; side++){
+
+				 		shoot(ID,
+			                enemies[ID].position.x - enemies[ID].width * (1 - enemies[ID].anchor.x),
+			                enemies[ID].position.y - enemies[ID].height * (1 - enemies[ID].anchor.y),
+			                enemies[ID].position.x + BOSS_SIZE * Math.cos(2 * Math.PI * side / sides + offset),
+			                enemies[ID].position.y + BOSS_SIZE * Math.sin(2 * Math.PI * side / sides + offset),
+			                false, true
+			            );
+
+				 	}
+
+		        }
+
 	        }
 
-	        if(enemies[ID].dead != true && enemies[ID].is_explode == true && in_radius(enemies[ID].position.x, enemies[ID].position.y, 30, sprite)){
-	        	explode(enemies[ID].position.x, enemies[ID].position.y, 30, enemies[ID].colour);
+	        let radius = enemies[ID].isBoss ? 60 : 30;
 
-	        	enemies[ID].dead = true
+	        if(enemies[ID].dead != true && enemies[ID].is_explode == true && in_radius(enemies[ID].position.x, enemies[ID].position.y, radius, sprite)){
 
-				app.ticker.add(function pop(delta){
-					enemies[ID].scale.x /= 1.2;
-					enemies[ID].scale.y /= 1.2;
+	        	enemies[ID].lose_hp(enemies[ID].hp, radius);
 
-					if(enemies[ID].scale.x < 0.01){
-						enemies[ID].visible = false;
-						enemies_left--;
-						killed++;
-						point_counter();
-
-						zone.removeChild(enemies[ID]);
-						app.ticker.remove(pop);
-					}
-
-				});
-
-	        	sprite.hp--;
-			    if(sprite.hp == 0){
-			        setTimeout(set_game_over, 1000);
-			        app.ticker.remove(gameLoop);
-			    }
-			    health_update();
 			}
+
 	    }
 
     }
@@ -1102,58 +1262,38 @@ let container = document.getElementById("container");
 
 //Add the canvas that Pixi automatically created for you to the HTML document
 
-
-
 container.appendChild(app.view);
-app.renderer.backgroundColor = 0x000000; // Background colour
+app.renderer.backgroundColor = BLACK;
 
 
 // Start splash screen
 
 set_splash_screen();
 
-/*app.renderer.view.style.position = "absolute";
-app.renderer.view.style.display = "block";
-app.renderer.autoResize = true;
-app.renderer.resize(window.innerWidth, window.innerHeight);*/
-
 
 /*
  *    Load important files (Audio, Pictures, etc)
  */
 
-
-// hohoho this is going to be fun
-
 PIXI.loader
-  .add(["https://cycnus-studio.github.io/Project/img/triangle_black.png",
-		"https://cycnus-studio.github.io/Project/img/triangle_blue.png",
-		"https://cycnus-studio.github.io/Project/img/triangle_red.png",
-		"https://cycnus-studio.github.io/Project/img/triangle_yellow.png",
-		"https://cycnus-studio.github.io/Project/img/triangle_purple.png",
-		"https://cycnus-studio.github.io/Project/img/triangle_orange.png",
-		"https://cycnus-studio.github.io/Project/img/triangle_green.png"])
-  .add(["https://cycnus-studio.github.io/Project/img/freezeButton.png",
-		"https://cycnus-studio.github.io/Project/img/freezeButtonDown.png",
-		"https://cycnus-studio.github.io/Project/img/freezeButtonOver.png",
-		"https://cycnus-studio.github.io/Project/img/freezeButtonDisabled.png",
-		"https://cycnus-studio.github.io/Project/img/mineButton.png",
-		"https://cycnus-studio.github.io/Project/img/mineButtonDown.png",
-		"https://cycnus-studio.github.io/Project/img/mineButtonOver.png",
-		"https://cycnus-studio.github.io/Project/img/mineButtonDisabled.png",
-		"https://cycnus-studio.github.io/Project/img/laserButton.png",
-		"https://cycnus-studio.github.io/Project/img/laserButtonDown.png",
-		"https://cycnus-studio.github.io/Project/img/laserButtonOver.png",
-		"https://cycnus-studio.github.io/Project/img/laserButtonDisabled.png"])
-  .on("progress", loadProgressHandler) 
-  .load(setUpFunctions);
+    .add([
+        "https://cycnus-studio.github.io/Project/img/brightness.png",
+        "https://cycnus-studio.github.io/Project/img/freezeButton.png",
+        "https://cycnus-studio.github.io/Project/img/freezeButtonDown.png",
+        "https://cycnus-studio.github.io/Project/img/freezeButtonOver.png",
+        "https://cycnus-studio.github.io/Project/img/freezeButtonDisabled.png",
+        "https://cycnus-studio.github.io/Project/img/mineButton.png",
+        "https://cycnus-studio.github.io/Project/img/mineButtonDown.png",
+        "https://cycnus-studio.github.io/Project/img/mineButtonOver.png",
+        "https://cycnus-studio.github.io/Project/img/mineButtonDisabled.png",
+        "https://cycnus-studio.github.io/Project/img/laserButton.png",
+        "https://cycnus-studio.github.io/Project/img/laserButtonDown.png",
+        "https://cycnus-studio.github.io/Project/img/laserButtonOver.png",
+        "https://cycnus-studio.github.io/Project/img/laserButtonDisabled.png",
+    ])
+    .on("progress", loadProgressHandler) 
+    .load(setup);
 
-function setUpFunctions() {
-	
-	setup();
-	setup1();
-	
-}
 
 //The `keyboard` helper functions
 
@@ -1165,7 +1305,9 @@ function keyboard(keyCodeA, keyCodeB) {
     key.isUp = true;
     key.press = undefined;
     key.release = undefined;
+
     //The `downHandler`
+    
     key.downHandler = event => {
         if (event.keyCode === key.codeA || event.keyCode === key.codeB) {
             if (key.isUp && key.press) key.press();
@@ -1176,6 +1318,7 @@ function keyboard(keyCodeA, keyCodeB) {
     };
 
     //The `upHandler`
+    
     key.upHandler = event => {
         if (event.keyCode === key.codeA || event.keyCode === key.codeB) {
             if (key.isDown && key.release) key.release();
@@ -1186,16 +1329,21 @@ function keyboard(keyCodeA, keyCodeB) {
     };
 
     //Attach event listeners
+    
     window.addEventListener(
         "keydown", key.downHandler.bind(key), false
     );
+    
     window.addEventListener(
         "keyup", key.upHandler.bind(key), false
     );
+    
     return key;
+
 }
 
 function keyboard_listen(){
+
     let left  = keyboard(37, 65),
         up    = keyboard(38, 87),
         right = keyboard(39, 68),
@@ -1204,6 +1352,7 @@ function keyboard_listen(){
     left.press = () => {
         sprite.vx = -PLAYER_SPEED;
     };
+
     left.release = () => {
         sprite.vx = right.isDown ? PLAYER_SPEED : 0;
     };
@@ -1211,6 +1360,7 @@ function keyboard_listen(){
     up.press = () => {
         sprite.vy = -PLAYER_SPEED;
     };
+
     up.release = () => {
         sprite.vy = down.isDown ? PLAYER_SPEED : 0;
     };
@@ -1218,6 +1368,7 @@ function keyboard_listen(){
     right.press = () => {
         sprite.vx = PLAYER_SPEED;
     };
+
     right.release = () => {
         sprite.vx = left.isDown ? -PLAYER_SPEED : 0;
     };
@@ -1225,130 +1376,9 @@ function keyboard_listen(){
     down.press = () => {
         sprite.vy = PLAYER_SPEED;
     };
+
     down.release = () => {
         sprite.vy = up.isDown ? -PLAYER_SPEED : 0;
     };
 
-}
-
-class Powerup {
-
-    constructor(buttonX, button_down, button_up, button_disabled, xValue) {
-		
-		let texture = PIXI.Texture.from(buttonX)
-
-        this.buttonX = new PIXI.Sprite(texture);
-		
-		this.buttonX.interactive = true; 
-		this.buttonX.buttonMode = true;
-
-        this.buttonX._button_texture = texture;
-        this.buttonX._button_texture_down = PIXI.Texture.from(button_down);
-        this.buttonX._button_texture_over = PIXI.Texture.from(button_up);
-	this.buttonX._button_texture_disabled = PIXI.Texture.from(button_disabled);
-			
-		this.buttonX.width = 80;
-		this.buttonX.height = 80;
-		this.buttonX.x = xValue;
-		this.buttonX.y = 710;
-		
-		zone.addChild(this.buttonX);
-		
-		this.buttonX 
-			.on('mousedown', this.onButtonDown) 
-			.on('touchstart', this.onButtonDown)
-
-			.on('mouseup', this.onButtonUp)
-			.on('touchend', this.onButtonUp)
-			.on('mouseupoutside', this.onButtonUp)
-			.on('touchendoutside', this.onButtonUp)
-
-			.on('mouseover', this.onButtonOver)
-
-			.on('mouseout', this.onButtonOut)
-			
-	}
-
-	onButtonDown() {
-		this.isdown = true;
-		this.texture = this._button_texture_down;
-		this.alpha = 1;
-	}
-
-	onButtonUp() {
-		this.isdown = false;
-		if (this.isOver) {
-			this.texture = this._button_texture_over;
-		} else {
-			this.texture = this._button_texture;
-		}
-		
-		//power ups here
-		
-	}
-
-	onButtonOver() {
-		this.isOver = true;
-		if (this.isdown) {
-			return;
-		}
-		this.texture = this._button_texture_over;
-	}
-
-	onButtonOut() {
-		this.isOver = false;
-		if (this.isdown) {
-			return;
-		}
-		this.texture = this._button_texture;
-	}
-
-}
-
-var powerStringArr, xArr;
-
-powerStringArr = ["freeze", "mine", "laser"]; 
-xArr = [220, 320, 420];
-
-function setup1() {
-	
-	for (x = 0; x < powerStringArr.length; x++) {
-		
-		powerName = powerStringArr[x];
-		xValue = xArr[x];
-	
-		let buttonX = new Powerup("https://cycnus-studio.github.io/Project/img/" + powerName + "Button.png",
-			"https://cycnus-studio.github.io/Project/img/" + powerName + "ButtonDown.png",
-			"https://cycnus-studio.github.io/Project/img/" + powerName + "ButtonOver.png", 
-			"https://cycnus-studio.github.io/Project/img/" + powerName + "ButtonDisabled.png", 
-			xValue);	
-
-	}
-	
-	//might need to change the position set variables 
-	point_title = new PIXI.Text("0", round_style);
-    point_title.position.set(-point_title.width + 700, HEIGHT - PADDING * 0.5);
-	zone.addChild(point_title);
-	
-}
-
-var points = 0;
-
-const speedBoost = 100;
-const damageBoost = 100;
-const freezeBoost = 200;
-const miniBoost = 500;
-
-function point_counter() {
-	
-	points += 25;
-	point_title.text = `${points}`;
-	console.log("points", points);
-	
-	if (points >= 100) {
-
-		//enable or disable the buttons
-
-	} 
-	
 }
