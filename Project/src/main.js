@@ -1133,8 +1133,7 @@ PIXI.loader
 		"https://cycnus-studio.github.io/Project/img/triangle_purple.png",
 		"https://cycnus-studio.github.io/Project/img/triangle_orange.png",
 		"https://cycnus-studio.github.io/Project/img/triangle_green.png"])
-  .add([
-		"https://cycnus-studio.github.io/Project/img/freezeButton.png",
+  .add(["https://cycnus-studio.github.io/Project/img/freezeButton.png",
 		"https://cycnus-studio.github.io/Project/img/freezeButtonDown.png",
 		"https://cycnus-studio.github.io/Project/img/freezeButtonOver.png",
 		"https://cycnus-studio.github.io/Project/img/freezeButtonDisabled.png",
@@ -1145,8 +1144,7 @@ PIXI.loader
 		"https://cycnus-studio.github.io/Project/img/laserButton.png",
 		"https://cycnus-studio.github.io/Project/img/laserButtonDown.png",
 		"https://cycnus-studio.github.io/Project/img/laserButtonOver.png",
-		"https://cycnus-studio.github.io/Project/img/laserButtonDisabled.png"
-	])
+		"https://cycnus-studio.github.io/Project/img/laserButtonDisabled.png"])
   .on("progress", loadProgressHandler) 
   .load(setUpFunctions);
 
