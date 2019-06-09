@@ -23,32 +23,22 @@ function loadProgressHandler(loader, resource) {
 /*
     
     UPDATE: okay nvm don't set them globally, all it does is create weird issues when recreating the scenes
-
     Keep them as local as possible
-
 */
 
 let splash, main_menu, menu, play_screen, zone, bullet_container; // Set all containers, this is the different scenes the game will have
 
 /* Main idea 
-
     app.stage is your main scene, we add and remove containers/sprites from it as we please
-
     For different scenes, we'll need to add all sprites related to a scene into a container
         
         To display, simply do:
-
             app.stage.addChild(scene_name);
         
         To hide it, simply do:
-
             app.stage.removeChild(scene_name);
-
-
     IMPORTANT NOTE: EVERY SPRITE CAN ONLY BELONG TO **1** CONTAINER
-
                     EVERY TIME YOU ASSIGN IT TO ANOTHER CONTAINER, IT LOSES MEMBERSHIP OF ITS PREVIOUS CONTAINER
-
 */
 
 let enemies = [];
@@ -1004,6 +994,7 @@ function play(delta){
 							obstacles[is_hit].visible = false;
 							enemies_left--;
 							killed++;
+							point_counter();
 
 							zone.removeChild(obstacles[is_hit]);
 							app.ticker.remove(pop);
@@ -1076,6 +1067,7 @@ function play(delta){
 						enemies[ID].visible = false;
 						enemies_left--;
 						killed++;
+						point_counter();
 
 						zone.removeChild(enemies[ID]);
 						app.ticker.remove(pop);
@@ -1134,16 +1126,36 @@ app.renderer.resize(window.innerWidth, window.innerHeight);*/
 // hohoho this is going to be fun
 
 PIXI.loader
-  .add(["https://cycnus-studio.github.io/Project/img/triangle_black.png"])
-  .add(["https://cycnus-studio.github.io/Project/img/triangle_blue.png"])
-  .add(["https://cycnus-studio.github.io/Project/img/triangle_red.png"])
-  .add(["https://cycnus-studio.github.io/Project/img/triangle_yellow.png"])
-  .add(["https://cycnus-studio.github.io/Project/img/triangle_purple.png"])
-  .add(["https://cycnus-studio.github.io/Project/img/triangle_orange.png"])
-  .add(["https://cycnus-studio.github.io/Project/img/triangle_green.png"])
+  .add(["https://cycnus-studio.github.io/Project/img/triangle_black.png",
+		"https://cycnus-studio.github.io/Project/img/triangle_blue.png",
+		"https://cycnus-studio.github.io/Project/img/triangle_red.png",
+		"https://cycnus-studio.github.io/Project/img/triangle_yellow.png",
+		"https://cycnus-studio.github.io/Project/img/triangle_purple.png",
+		"https://cycnus-studio.github.io/Project/img/triangle_orange.png",
+		"https://cycnus-studio.github.io/Project/img/triangle_green.png"])
+  .add([
+		"https://cycnus-studio.github.io/Project/img/freezeButton.png",
+		"https://cycnus-studio.github.io/Project/img/freezeButtonDown.png",
+		"https://cycnus-studio.github.io/Project/img/freezeButtonOver.png",
+		"https://cycnus-studio.github.io/Project/img/speedButton.png",
+		"https://cycnus-studio.github.io/Project/img/speedButtonDown.png",
+		"https://cycnus-studio.github.io/Project/img/speedButtonOver.png",
+		"https://cycnus-studio.github.io/Project/img/helperButton.png",
+		"https://cycnus-studio.github.io/Project/img/helperButtonDown.png",
+		"https://cycnus-studio.github.io/Project/img/helperButtonOver.png", 
+		"https://cycnus-studio.github.io/Project/img/laserButton.png",
+		"https://cycnus-studio.github.io/Project/img/laserButtonDown.png",
+		"https://cycnus-studio.github.io/Project/img/laserButtonOver.png"
+	])
   .on("progress", loadProgressHandler) 
-  .load(setup);
+  .load(setUpFunctions);
 
+function setUpFunctions() {
+	
+	setup();
+	setup1();
+	
+}
 
 //The `keyboard` helper functions
 
@@ -1218,4 +1230,138 @@ function keyboard_listen(){
     down.release = () => {
         sprite.vy = up.isDown ? -PLAYER_SPEED : 0;
     };
+
+}
+
+class Powerup {
+
+    constructor(buttonX, button_down, button_up, xValue) {
+		
+		let texture = PIXI.Texture.from(buttonX)
+
+        this.buttonX = new PIXI.Sprite(texture);
+		
+		this.buttonX.interactive = true; 
+		this.buttonX.buttonMode = true;
+
+        this.buttonX._button_texture = texture;
+        this.buttonX._button_texture_down = PIXI.Texture.from(button_down);
+        this.buttonX._button_texture_over = PIXI.Texture.from(button_up);
+			
+		this.buttonX.width = 80;
+		this.buttonX.height = 80;
+		this.buttonX.x = xValue;
+		this.buttonX.y = 710;
+		
+		zone.addChild(this.buttonX);
+		
+		this.buttonX 
+			.on('mousedown', this.onButtonDown) 
+			.on('touchstart', this.onButtonDown)
+
+			.on('mouseup', this.onButtonUp)
+			.on('touchend', this.onButtonUp)
+			.on('mouseupoutside', this.onButtonUp)
+			.on('touchendoutside', this.onButtonUp)
+
+			.on('mouseover', this.onButtonOver)
+
+			.on('mouseout', this.onButtonOut)
+			
+	}
+
+	onButtonDown() {
+		this.isdown = true;
+		this.texture = this._button_texture_down;
+		this.alpha = 1;
+	}
+
+	onButtonUp() {
+		this.isdown = false;
+		if (this.isOver) {
+			this.texture = this._button_texture_over;
+		} else {
+			this.texture = this._button_texture;
+		}
+		
+		//call power ups here
+		
+	}
+
+	onButtonOver() {
+		this.isOver = true;
+		if (this.isdown) {
+			return;
+		}
+		this.texture = this._button_texture_over;
+	}
+
+	onButtonOut() {
+		this.isOver = false;
+		if (this.isdown) {
+			return;
+		}
+		this.texture = this._button_texture;
+	}
+
+}
+
+var powerStringArr, xArr;
+
+powerStringArr = ["freeze", "speed", "helper", "laser"]; 
+xArr = [220, 320, 420, 520];
+
+function setup1() {
+	
+	for (x = 0; x < powerStringArr.length; x++) {
+		
+		powerName = powerStringArr[x];
+		xValue = xArr[x];
+	
+		let buttonX = new Powerup("https://cycnus-studio.github.io/Project/img/" + powerName + "Button.png",
+			"https://cycnus-studio.github.io/Project/img/" + powerName + "ButtonDown.png",
+			"https://cycnus-studio.github.io/Project/img/" + powerName + "ButtonOver.png", 
+			xValue);	
+
+	}
+	
+	//might need to change the position set variables 
+	point_title = new PIXI.Text("0", round_style);
+    point_title.position.set(-point_title.width + 700, HEIGHT - PADDING * 0.5);
+	zone.addChild(point_title);
+	
+}
+
+var points;
+
+points = 0;
+
+powerValueArr = [500, 200, 100, 100];
+powerStringInverseArr = ["laser", "helper", "speed", "freeze"]; 
+
+const speedBoost = 100;
+const damageBoost = 100;
+const freezeBoost = 200;
+const miniBoost = 500;
+
+function point_counter() {
+	
+	points += 25;
+	point_title.text = `${points}`;
+	
+	for (x = 0; x < powerStringArr.length; x++) {
+		
+		if (points >= powerValueArr[x]) {
+			
+			//enable or disable the buttons
+			//draw disabled buttons
+			
+		} else {
+
+			break;
+
+		}
+		
+	}
+	
 }
