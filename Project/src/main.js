@@ -1235,7 +1235,7 @@ function keyboard_listen(){
 
 class Powerup {
 
-    constructor(buttonX, button_down, button_up, xValue) {
+    constructor(buttonX, button_down, button_up, button_disabled, xValue) {
 		
 		let texture = PIXI.Texture.from(buttonX)
 
@@ -1247,6 +1247,7 @@ class Powerup {
         this.buttonX._button_texture = texture;
         this.buttonX._button_texture_down = PIXI.Texture.from(button_down);
         this.buttonX._button_texture_over = PIXI.Texture.from(button_up);
+	this.buttonX._button_texture_disabled = PIXI.Texture.from(button_disabled);
 			
 		this.buttonX.width = 80;
 		this.buttonX.height = 80;
@@ -1284,7 +1285,7 @@ class Powerup {
 			this.texture = this._button_texture;
 		}
 		
-		//call power ups here
+		//power ups here
 		
 	}
 
@@ -1309,7 +1310,7 @@ class Powerup {
 var powerStringArr, xArr;
 
 powerStringArr = ["freeze", "mine", "laser"]; 
-xArr = [220, 320, 420, 520];
+xArr = [220, 320, 420];
 
 function setup1() {
 	
@@ -1321,6 +1322,7 @@ function setup1() {
 		let buttonX = new Powerup("https://cycnus-studio.github.io/Project/img/" + powerName + "Button.png",
 			"https://cycnus-studio.github.io/Project/img/" + powerName + "ButtonDown.png",
 			"https://cycnus-studio.github.io/Project/img/" + powerName + "ButtonOver.png", 
+			"https://cycnus-studio.github.io/Project/img/" + powerName + "ButtonDisabled.png", 
 			xValue);	
 
 	}
@@ -1332,11 +1334,7 @@ function setup1() {
 	
 }
 
-var points;
-
-points = 0;
-
-powerValueArr = [500, 200, 100, 100];
+var points = 0;
 
 const speedBoost = 100;
 const damageBoost = 100;
@@ -1349,19 +1347,10 @@ function point_counter() {
 	point_title.text = `${points}`;
 	console.log("points", points);
 	
-	for (x = 0; x < powerStringArr.length; x++) {
-		
-		if (points >= powerValueArr[x]) {
-			
-			//enable or disable the buttons
-			//draw disabled buttons
-			
-		} else {
+	if (points >= 100) {
 
-			break;
+		//enable or disable the buttons
 
-		}
-		
-	}
+	} 
 	
 }
