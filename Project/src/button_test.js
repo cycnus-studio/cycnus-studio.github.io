@@ -110,38 +110,3 @@ function setup1() {
 	}
   
 }
-/*
-function onButtonDown() {
-    this.isdown = true;
-	console.log("buttondown");
-    this.texture = freezeTextureDown;
-    this.alpha = 1;
-}
-
-function onButtonUp() {
-    this.isdown = false;
-	console.log("buttonup");
-    if (this.isOver) {
-        this.texture = freezeTextureOver;
-    } else {
-        this.texture = freezeTexture;
-    }
-}
-
-function onButtonOver() {
-	console.log("buttonover");
-    this.isOver = true;
-    if (this.isdown) {
-        return;
-    }
-    this.texture = freezeTextureOver;
-}
-
-function onButtonOut() {
-	console.log("buttonout");
-    this.isOver = false;
-    if (this.isdown) {
-        return;
-    }
-    this.texture = freezeTexture;
-}*/
