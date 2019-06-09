@@ -1144,7 +1144,7 @@ PIXI.loader
 		"https://cycnus-studio.github.io/Project/img/mineButtonDisabled.png",
 		"https://cycnus-studio.github.io/Project/img/laserButton.png",
 		"https://cycnus-studio.github.io/Project/img/laserButtonDown.png",
-		"https://cycnus-studio.github.io/Project/img/laserButtonOver.png"
+		"https://cycnus-studio.github.io/Project/img/laserButtonOver.png",
 		"https://cycnus-studio.github.io/Project/img/laserButtonDisabled.png"
 	])
   .on("progress", loadProgressHandler) 
