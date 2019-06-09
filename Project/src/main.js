@@ -1348,6 +1348,7 @@ function point_counter() {
 	
 	points += 25;
 	point_title.text = `${points}`;
+	console.log("points", points);
 	
 	for (x = 0; x < powerStringArr.length; x++) {
 		
