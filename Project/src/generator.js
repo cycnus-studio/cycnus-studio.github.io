@@ -16,13 +16,6 @@
  
  const WALL_BUFFER   = (WIDTH - WALL_LENGTH) / 2;
  
- function randint(low, high){
-	 
-	let range = high - low + 1;
-	
-	return Math.floor(range * Math.random() + low);
-	
- }
  
  function get_obstacles(){
 	 
@@ -79,126 +72,146 @@
  
  
 const POINTS = [
-	[150, 150],
-	[330, 150],
+	[150, 145],
+	[345, 145],
 	[150, 330],
-	[330, 330],
+	[345, 330],
 	
-	[850,  150],
-	[1030, 150],
-	[830,  330],
-	[1030, 330],
+	[850,  145],
+	[1050, 145],
+	[850,  330],
+	[1050, 330],
 	
 	[150, 460],
-	[330, 460],
+	[345, 460],
 	[150, 640],
-	[330, 640],
+	[345, 640],
 	
 	[850,  460],
-	[1030, 460],
-	[830,  640],
-	[1030, 640],
+	[1050, 460],
+	[850,  640],
+	[1050, 640],
 	
-	[600, 330],
-	[600, 460]
+	[605, 330],
+	[605, 460],
+
+	[605, 145],
+	[605, 640]
 ]
 
- function getZone(x, y){
+ function getZone(sprite){
 	
 	let best = [1e9, 0];
 	
  	for(let vertex = 0; vertex < POINTS.length; vertex++){
 		
-		let dist = Math.hypot(POINTS[vertex][0] - x, POINTS[vertex][1] - y);
+		let dist = Math.hypot(POINTS[vertex][0] - sprite.position.x, POINTS[vertex][1] - sprite.position.y);
         
         let pointA = {
             x: POINTS[vertex][0],
             y: POINTS[vertex][1],
-        }
-        
-        let pointB = {
-            x: x,
-            y: y,
+            hitArea: null
         }
 		
-		if(dist < best[0] && isVisible(pointA, pointB, false))
+		if(dist < best[0] && isFullyVisible(sprite, pointA))
 			best = [dist, vertex];
 		
 	}
 	
-	return best[1] + 1;
+	return [best[0], best[1] + 1];
 
  }
 
  function getPath(player, enemy){
 
- 	let src = getZone(enemy.position.x, enemy.position.y);
- 	let tgt = getZone(player.position.x, player.position.y);
+ 	let [dist, src] = getZone(enemy);
+ 	let tgt = getZone(player)[1];
 
  	let queue = [[src, -1]];
+
+ 	//console.log("ENEMY: ", src);
 
  	let tgt_pos = {
  		x: player.position.x,
  		y: player.position.y
  	}
 
+ 	if(enemy.isBoss == true){
+
+	 	if(dist < 25)
+	 		enemy.nextZone = -1;
+	 	else if(enemy.nextZone != -1)
+	 		[tgt_pos.x, tgt_pos.y] = POINTS[enemy.nextZone - 1];
+
+	}
+
  	let adj = [
  		[2, 3],
- 		[1, 4, 5],
+ 		[1, 4, 19],
  		[1, 4, 9],
  		[2, 3, 10, 17],
- 		[2, 6, 7],
+ 		[6, 7, 19],
  		[5, 8],
 		[5, 8, 13, 17],
  		[6, 7, 14],
 		[3, 10, 11],
 		[4, 9, 12, 18],
 		[9, 12],
-		[10, 11, 15],
+		[10, 11, 20],
 		[7, 14, 15, 18],
 		[8, 13, 16],
-		[12, 13, 16],
+		[13, 16, 20],
 		[14, 15],
 		[4, 7, 18],
-		[10, 13, 17]
- 	]
+		[10, 13, 17],
+		[2, 5],
+		[12, 15]
+ 	];
     
-    let visited = new Array(30);
 
- 	while(queue.length != 0){
- 		
- 		let [node, first] = queue.shift();
+    if(enemy.isBoss === false || (enemy.nextZone == -1 || isFullyVisible(enemy, tgt_pos) == false)){
 
- 		if(node == tgt || isFullyVisible(player, enemy) || enemy.is_ghost == true){
+	    let visited = new Array(30);
 
- 			if(first == -1 || isFullyVisible(player, enemy) || enemy.is_ghost == true)
- 				break;
+	 	while(queue.length != 0){
+	 		
+	 		let [node, first] = queue.shift();
 
- 			[tgt_pos.x, tgt_pos.y] = POINTS[first - 1];
+	 		if(node == tgt || isFullyVisible(player, enemy) || enemy.is_ghost == true){
 
- 			break;
+	 			if(first == -1 || isFullyVisible(player, enemy) || enemy.is_ghost == true)
+	 				break;
 
- 		}
+	 			//console.log(first);
 
- 		for(let next of adj[node - 1]){
-            
-            if(visited[next] == 1)
-                continue;
-            
-            visited[next] = 1;
-            
- 			if(first == -1)
- 				queue.push([next, next]);
- 			else
- 				queue.push([next, first]);
- 		}
+	 			[tgt_pos.x, tgt_pos.y] = POINTS[first - 1];
+	 			enemy.nextZone = first;
 
- 	}
+	 			break;
+
+	 		}
+
+	 		for(let next of adj[node - 1]){
+	            
+	            if(visited[next] == 1)
+	                continue;
+	            
+	            visited[next] = 1;
+	            
+	 			if(first == -1)
+	 				queue.push([next, next]);
+	 			else
+	 				queue.push([next, first]);
+	 		}
+
+	 	}
+
+	}
 
  	let angle = Math.atan2(tgt_pos.y - enemy.position.y, tgt_pos.x - enemy.position.x);
 
-	enemy.vx = enemy.max_veloc * Math.cos(angle);
-	enemy.vy = enemy.max_veloc * Math.sin(angle);
+	enemy.vx = slowing_factor * enemy.max_veloc * Math.cos(angle);
+	enemy.vy = slowing_factor * enemy.max_veloc * Math.sin(angle);
 
  	return enemy;
 
@@ -221,7 +234,7 @@ const POINTS = [
 
  	}
 
- 	return points;
+ 	return [offset, points];
 
  }
  
@@ -250,7 +263,8 @@ const POINTS = [
 
 	} else if(type == "pentagon"){
 
-		attributes.speed += 0.6;
+		attributes.speed += 0.2;
+		attributes.hp += 1;
 		attributes.is_explode = true;
 		attributes.explode_on_death = true;
 
@@ -287,7 +301,7 @@ const POINTS = [
 		attributes.explode_on_death = true;
 
 	} else if(colour == 12){ // Orange
-		
+
 		attributes.is_ghost = true;
 
 	}
@@ -300,11 +314,11 @@ const POINTS = [
 
  	let attributes = getAttributes(type, colour);
 
- 	let points = getPoints(ENEMY_TYPES.indexOf(type) + 3, SPRITE_SIZE * 1.5);
+ 	let points = getPoints(ENEMY_TYPES.indexOf(type) + 3, SPRITE_SIZE * 1.5)[1];
 	 
-	let enemy = new PIXI.Graphics();//new PIXI.Sprite(PIXI.loader.resources[`https://cycnus-studio.github.io/Project/img/triangle_${COLOUR_NAMES[colour - 6]}.png`].texture);
+	let enemy = new PIXI.Graphics();
     
-    enemy.beginFill(attributes.colour == WHITE ? BLACK : attributes.colour); // Set colour here
+    enemy.beginFill(attributes.colour == WHITE ? BLACK : attributes.colour);
 	enemy.lineStyle(rand_range(2, 6), WHITE);
     enemy.drawPolygon(points);
     enemy.endFill();
@@ -331,19 +345,67 @@ const POINTS = [
 	enemy.previousShot = 0;
 
 	enemy.hitArea = new PIXI.Polygon(points);
-	
-	
-	// pop up? scale up? appear from wall?
+	enemy.nextZone = -1;
+
+	enemy.lose_hp = function(damage, explosion_radius = 40) {
+
+		this.hp -= damage;
+
+		if(this.hp <= 0){
+
+			if(this.explode_on_death == true){
+
+				explode(this.position.x, this.position.y, explosion_radius, this.colour)
+
+		        // Kill player if in radius
+
+		        if(in_radius(this.position.x, this.position.y, explosion_radius, sprite)){
+		            sprite.hp--;
+		            if(sprite.hp == 0){
+		                setTimeout(set_game_over, 1000);
+		                app.ticker.remove(gameLoop);
+		            }
+		            health_update();
+		        }
+
+		    }
+
+		    let enemy = this;
+
+		    user_score += ENEMY_BONUS;
+			point_title.update();
+
+			app.ticker.add(function pop(delta){
+				enemy.scale.x /= 1.2;
+				enemy.scale.y /= 1.2;
+
+				if(enemy.scale.x < 0.01){
+
+					enemy.visible = false;
+					enemies_left--;
+
+					zone.removeChild(enemy);
+					app.ticker.remove(pop);
+				}
+
+			});
+
+			this.dead = true;
+		}
+		
+	}
 
 	do {
-		enemy.position.x = Math.floor(Math.random() * (WIDTH - PADDING - enemy.width) + PADDING);
-		enemy.position.y = Math.floor(Math.random() * (HEIGHT - PADDING - enemy.height) + PADDING);
+
+		enemy.position.x = rand_range(PADDING + enemy.width, WIDTH - PADDING - enemy.width);
+		enemy.position.y = rand_range(PADDING + enemy.height, HEIGHT - PADDING - enemy.height);
+
 	} while(hit_wall(enemy, obstacles) == true);
 
 	//console.log(enemy.position.x);
 
 	enemy.scale.set(1e-5, 1e-5);
-	enemy.generation_rate = Math.random() * 9 + 2.5;
+	enemy.generation_rate = Math.random() * 9 + 5;
 	
 	return enemy;
 	
@@ -354,11 +416,11 @@ const POINTS = [
 
  	let attributes = getAttributes(type, colour);
 
- 	let points = getPoints(ENEMY_TYPES.indexOf(type) + 3, BOSS_SIZE);
+ 	let [angle, points] = getPoints(ENEMY_TYPES.indexOf(type) + 3, BOSS_SIZE);
 	 
 	let enemy = new PIXI.Graphics();
     
-    enemy.beginFill(attributes.colour == WHITE ? BLACK : attributes.colour); // Set colour here
+    enemy.beginFill(attributes.colour == WHITE ? BLACK : attributes.colour);
 	enemy.lineStyle(rand_range(2, 6), WHITE, 1);
     enemy.drawPolygon(points);
     enemy.endFill();
@@ -376,25 +438,84 @@ const POINTS = [
 	enemy.max_veloc = attributes.speed * 0.7;
 	enemy.bullet_speed = attributes.bullet_speed;
 
+	enemy.is_explode = attributes.is_explode;
+	enemy.explode_on_death = attributes.explode_on_death;
+	enemy.is_ghost = attributes.is_ghost;
+
 	enemy.colour = attributes.colour;
+	enemy.offset  = angle;
 
 	enemy.shots = 6;
 	enemy.previousShot = 0;
+	enemy.previousSpread = 0;
 
 	enemy.hitArea = new PIXI.Polygon(points);
-	
-	
-	// pop up? scale up? appear from wall?
+	enemy.nextZone = -1;
+
+
+	enemy.lose_hp = function(damage, explosion_radius = 80) {
+
+		this.hp -= damage;
+
+		updateBossBar();
+
+		if(this.hp <= 0){
+
+			if(this.explode_on_death == true){
+
+				explode(this.position.x, this.position.y, explosion_radius, this.colour)
+
+		        // Kill player if in radius
+
+		        if(in_radius(this.position.x, this.position.y, explosion_radius, sprite)){
+		            sprite.hp--;
+		            if(sprite.hp == 0){
+		                setTimeout(set_game_over, 1000);
+		                app.ticker.remove(gameLoop);
+		            }
+		            health_update();
+		        }
+
+		    }
+
+		    let enemy = this;
+
+		    user_score += BOSS_BONUS;
+			point_title.update();
+
+			app.ticker.add(function pop(delta){
+
+				enemy.scale.x /= 1.2;
+				enemy.scale.y /= 1.2;
+
+				if(enemy.scale.x < 0.01){
+
+					enemy.visible = false;
+					enemies_left--;
+
+					zone.removeChild(enemy);
+					app.ticker.remove(pop);
+				}
+
+			});
+
+			this.dead = true;
+
+			boss_bar_out();
+
+		}
+
+	}
 
 	do {
-		enemy.position.x = Math.floor(Math.random() * (WIDTH - PADDING - enemy.width) + PADDING);
-		enemy.position.y = Math.floor(Math.random() * (HEIGHT - PADDING - enemy.height) + PADDING);
+
+		enemy.position.x = rand_range(PADDING + enemy.width, WIDTH - PADDING - enemy.width);
+		enemy.position.y = rand_range(PADDING + enemy.height, HEIGHT - PADDING - enemy.height);
+	
 	} while(hit_wall(enemy, obstacles) == true);
 
-	//console.log(enemy.position.x);
-
 	enemy.scale.set(1e-5, 1e-5);
-	enemy.generation_rate = Math.random() * 8 + 1.5;
+	enemy.generation_rate = Math.random() * 9 + 5;
 	
 	return enemy;
  
