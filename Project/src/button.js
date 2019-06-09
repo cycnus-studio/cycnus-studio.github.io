@@ -14,85 +14,80 @@ PIXI.loader
 		"https://cycnus-studio.github.io/Project/img/laserButtonOver.png"
 	])
 	.load(setup1);
-	
+	  
 class Powerup {
 
     constructor(buttonX, button_down, button_up, xValue) {
+		
+		let texture = PIXI.Texture.from(buttonX)
 
-        this._button_texture      = PIXI.Texture.from(buttonX);
-        this._button_texture_down = PIXI.Texture.from(button_down);
-        this._button_texture_over = PIXI.Texture.from(button_up);
+        this.buttonX = new PIXI.Sprite(texture);
+		
+		this.buttonX.interactive = true; 
+		this.buttonX.buttonMode = true;
 
-        this.buttonX = new PIXI.Sprite(this._button_texture);
-
+        this.buttonX._button_texture = texture;
+        this.buttonX._button_texture_down = PIXI.Texture.from(button_down);
+        this.buttonX._button_texture_over = PIXI.Texture.from(button_up);
+	
         // add the other stuff here (make sure to use the this. prefix for ALL VARIABLES)
 		
-		this.width = 80;
-		this.height = 80;
-		this.x = xValue;
-		this.y = 710;
-		this.scale.set = 0.5;
+		this.buttonX.width = 80;
+		this.buttonX.height = 80;
+		this.buttonX.x = xValue;
+		this.buttonX.y = 710;
 		
 		app.stage.addChild(this.buttonX);
 		
-    }
-	
-	this.buttonX 
-		.on('mousedown', onButtonDown) 
-		.on('touchstart', onButtonDown)
+		this.buttonX 
+			.on('mousedown', this.onButtonDown) 
+			.on('touchstart', this.onButtonDown)
 
-		.on('mouseup', onButtonUp)
-		.on('touchend', onButtonUp)
-		.on('mouseupoutside', onButtonUp)
-		.on('touchendoutside', onButtonUp)
+			.on('mouseup', this.onButtonUp)
+			.on('touchend', this.onButtonUp)
+			.on('mouseupoutside', this.onButtonUp)
+			.on('touchendoutside', this.onButtonUp)
 
-		.on('mouseover', onButtonOver)
+			.on('mouseover', this.onButtonOver)
 
-		.on('mouseout', onButtonOut)
+			.on('mouseout', this.onButtonOut)
+			
+	}
 
-    // Add functions here
-
-    onButtonDown() {
-
-        // reference the variables with this. prefix
-
-    }
-	
-	function onButtonDown() {
+	onButtonDown() {
 		this.isdown = true;
 		console.log("buttondown");
-		this.texture = button_down;
+		this.texture = this._button_texture_down;
 		this.alpha = 1;
 	}
 
-	function onButtonUp() {
+	onButtonUp() {
 		this.isdown = false;
 		console.log("buttonup");
 		if (this.isOver) {
-			this.texture = button_up;
+			this.texture = this._button_texture_over;
 		} else {
-			this.texture = buttonX;
+			this.texture = this._button_texture;
 		}
 	}
 
-	function onButtonOver() {
+	onButtonOver() {
 		console.log("buttonover");
 		this.isOver = true;
 		if (this.isdown) {
 			return;
 		}
-		this.texture = button_up;
+		this.texture = this._button_texture_over;
 	}
 
-	function onButtonOut() {
+	onButtonOut() {
 		console.log("buttonout");
 		this.isOver = false;
 		if (this.isdown) {
 			return;
 		}
-		this.texture = buttonX;
+		this.texture = this._button_texture;
 	}
-
 
 }
 var powerStringArr, xArr;
