@@ -17,8 +17,8 @@ function move(sprite, distance, obstacles){
 		y: sprite.position.y,
 	}
 
-	sprite.position.x += sprite.vx * distance;
-	sprite.position.y += sprite.vy * distance;
+	sprite.position.x += sprite.vx * distance * (sprite.isUser === true || sprite.isPlayerShot === true ? 1 : slowing_factor);
+	sprite.position.y += sprite.vy * distance * (sprite.isUser === true || sprite.isPlayerShot === true ? 1 : slowing_factor);
 
 	if(hit_wall(sprite, obstacles) == false)
 		return [sprite, false];
@@ -136,8 +136,9 @@ function linesIntersect(a, b, c, d){
 	return ccw(a, c, d) != ccw(b, c, d) && ccw(a, b, c) != ccw(a, b, d);
 }
 
-function isVisible(a, b, isSprite = true){
-    
+function isVisible(a, b, isSprite = true, with_padding = false){
+
+	
     // Checks whether two objects are in visible sight
     
     if(isSprite == true){
@@ -159,6 +160,7 @@ function isVisible(a, b, isSprite = true){
                 x: polygon.points[(point + 2) % polygon.points.length] + polygon.x,
                 y: polygon.points[(point + 3) % polygon.points.length] + polygon.y,
             }
+
 			if(linesIntersect(a, b, c, d))
 				return false;
         }
@@ -169,17 +171,7 @@ function isVisible(a, b, isSprite = true){
     
 }
 
-function isFullyVisible(a, b, isSprite = true){
-
-	let dimensions_a = {
-		width: a.width,
-		height: a.height
-	}
-
-	let dimensions_b = {
-		width: b.width,
-		height: b.height
-	}
+function isFullyVisible(a, b, with_padding = false){
 
     for(let sprite_point = 0; sprite_point < a.hitArea.points.length; sprite_point += 2){
 		
@@ -188,15 +180,19 @@ function isFullyVisible(a, b, isSprite = true){
 			y: a.hitArea.points[sprite_point + 1] + a.position.y,
 		};
 
-		for(let point = 0; point < b.hitArea.points.length; point += 2){
-			
-			let point_b = {
-				x: b.hitArea.points[point] + b.position.x,
-				y: b.hitArea.points[point + 1]  + b.position.y,
-			};
-			
-			if(isVisible(point_a, point_b, false) == false)
-    			return false;
+		if(b.hitArea != null) {
+			for(let point = 0; point < b.hitArea.points.length; point += 2){
+				
+				let point_b = {
+					x: b.hitArea.points[point] + b.position.x,
+					y: b.hitArea.points[point + 1]  + b.position.y,
+				};
+				
+				if(isVisible(point_a, point_b, false, with_padding) == false)
+	    			return false;
+			}
+		} else if(isVisible(point_a, b, false, with_padding) == false){
+	    	return false;
 		}
 		
 	}
@@ -265,6 +261,24 @@ function in_polygon(sprite, polygon){
 		if(area.contains(b.x - polygon.x, b.y - polygon.y))
 			return true;
 		
+	}
+
+	if(sprite.isBoss == true){
+
+		// Check if obstacle/enemy is inside of sprite (This happens when you're generating a boss)
+
+		for(let point = 0; point < area.points.length; point += 2){
+				
+			let a = {
+				x: area.points[point] + polygon.x,
+				y: area.points[point + 1] + polygon.y,
+			};
+				
+			if(sprite.hitArea.contains(a.x - sprite.position.x, a.y - sprite.position.y))
+				return true;
+
+		}
+
 	}
 
 	return false;
