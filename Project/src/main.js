@@ -1137,15 +1137,15 @@ PIXI.loader
 		"https://cycnus-studio.github.io/Project/img/freezeButton.png",
 		"https://cycnus-studio.github.io/Project/img/freezeButtonDown.png",
 		"https://cycnus-studio.github.io/Project/img/freezeButtonOver.png",
-		"https://cycnus-studio.github.io/Project/img/speedButton.png",
-		"https://cycnus-studio.github.io/Project/img/speedButtonDown.png",
-		"https://cycnus-studio.github.io/Project/img/speedButtonOver.png",
-		"https://cycnus-studio.github.io/Project/img/helperButton.png",
-		"https://cycnus-studio.github.io/Project/img/helperButtonDown.png",
-		"https://cycnus-studio.github.io/Project/img/helperButtonOver.png", 
+		"https://cycnus-studio.github.io/Project/img/freezeButtonDisabled.png",
+		"https://cycnus-studio.github.io/Project/img/mineButton.png",
+		"https://cycnus-studio.github.io/Project/img/mineButtonDown.png",
+		"https://cycnus-studio.github.io/Project/img/mineButtonOver.png",
+		"https://cycnus-studio.github.io/Project/img/mineButtonDisabled.png",
 		"https://cycnus-studio.github.io/Project/img/laserButton.png",
 		"https://cycnus-studio.github.io/Project/img/laserButtonDown.png",
 		"https://cycnus-studio.github.io/Project/img/laserButtonOver.png"
+		"https://cycnus-studio.github.io/Project/img/laserButtonDisabled.png"
 	])
   .on("progress", loadProgressHandler) 
   .load(setUpFunctions);
@@ -1308,7 +1308,7 @@ class Powerup {
 
 var powerStringArr, xArr;
 
-powerStringArr = ["freeze", "speed", "helper", "laser"]; 
+powerStringArr = ["freeze", "mine", "laser"]; 
 xArr = [220, 320, 420, 520];
 
 function setup1() {
@@ -1337,7 +1337,6 @@ var points;
 points = 0;
 
 powerValueArr = [500, 200, 100, 100];
-powerStringInverseArr = ["laser", "helper", "speed", "freeze"]; 
 
 const speedBoost = 100;
 const damageBoost = 100;
