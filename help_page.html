@@ -1,0 +1,259 @@
+<html>
+
+	<head>
+
+		<title>
+	
+			Cycnus Studio Help Page 
+		
+		</title>
+	
+		<link href="https://fonts.googleapis.com/css?family=Roboto:100&display=swap" rel="stylesheet">	
+		
+		<style>
+			
+			body {
+				background-color:black;
+				font-family:'Roboto';
+				color:#eff3f5;
+				margin:50;}
+
+			h1 {
+				text-align:center;
+				background-color:rgba(42,51,65,0.55);
+				color:#eff3f5;
+				border-radius:10px;
+				font-family:'Roboto'}
+				
+			h2 {
+				background-color:rgba(42,51,65,0.55);
+				font-size:22;
+				border-radius: 10px;
+				font-family:'Roboto';
+				padding:10;}
+			
+			p, ul {
+				background-color:rgba(42,51,65,0.55);
+				color:#eff3f5;
+				border-radius: 10px;
+				font-family:'Roboto';
+				font-size:18;
+				margin:40;
+				margin-left:300;
+				margin-right:300;
+				padding:10;}
+				
+			img {
+				border-radius:10px;
+				width:6vh; 
+				height:6vh;}		
+				
+			table {
+				border:2px solid black;
+				border-width:4;
+				color:white;
+				width:500;
+				border-style:double;
+				padding:15;
+				margin-top:10;
+				margin-bottom:10;
+				font-size:18;
+				backgroud-padding:40;}
+				
+			hr {
+				border: none;
+				border-top: 3px double #333;
+				color: #333;
+				overflow: visible;
+				text-align: center;
+				height: 5px;}
+
+			hr:after {
+				background: #fff;
+				content: 'O';
+				padding: 0 4px;
+				position: relative;
+				top: -13px;}
+
+			#upgradeTable {
+				width: 600;}
+			
+		</style>
+		
+	</head>
+	
+	<body>
+	
+		<center>
+		
+			<h1>Help Page</h1>
+			
+			<hr>
+			
+			<h2>Objectives</h2>
+
+			<p>
+				
+				Your objective is to pass levels by shooting enemies.<br>
+				Make sure to avoid hostile bullets!<br>
+			
+			</p>
+
+			<hr>
+			
+			<h2>Enemies</h2>
+
+			<p>
+				
+				The health, speed, and firing rate of each enemy is determined by their shape and colour. <br>
+				Note that these power ups compound over shape and colour. <br>
+				i.e. a yellow triangle will be fast because of <br>
+				i.e. a yellow triangle will be fast because of 
+				
+				<table>
+				
+					<tr>
+						<th colspan = "3">Shape</th>
+					</tr>
+				
+					<tr>
+						<td><u>Shape</u></td>
+						<td><u>Abilities</u></td>
+						<td align = "middle"><u>Appearance</u></td>
+					</tr>
+					
+					<tr>
+						<td>Square</td>
+						<td>Standard enemy</td>
+						<td align = "middle"><img src = "https://cycnus-studio.github.io/Project/img/square_black.png"></td>
+					</tr>
+					
+					<tr>
+						<td>Triangle</td>
+						<td>Extra speed <br> Firing rate boost</td>
+						<td align = "middle"><img src = "https://cycnus-studio.github.io/Project/img/triangle_black.png"></td>
+					</tr>
+
+					<tr>
+						<td>Pentagon</td>
+						<td>Explode on contact</td>
+						<td align = "middle"><img src = "https://cycnus-studio.github.io/Project/img/pentagon_black.png"></td>
+					</tr>
+					
+					<tr>
+						<td>Hexagon</td>
+						<td>Extra health <br> Less speed</td>
+						<td align = "middle"><img src = "https://cycnus-studio.github.io/Project/img/hexagon_black.png"></td>
+					</tr>
+
+				</table>
+
+				<table>
+
+					<tr>
+						<th colspan = "3">Colour</th>
+					</tr>
+		
+					<tr>
+						<td width = "110px"><u>Colour</u></td>
+						<td><u>Abilities</u></td>
+						<td align = "middle"><u>Appearance</u></td>
+					</tr>
+					
+					<tr>
+						<td>Black</td>
+						<td>Standard enemy</td>
+						<td align = "middle"><img src = "https://cycnus-studio.github.io/Project/img/square_black.png"></td>
+					</tr>
+					
+					<tr>
+						<td>Yellow</td>
+						<td>Extra speed <br> Firing rate boost</td>
+						<td align = "middle"><img src = "https://cycnus-studio.github.io/Project/img/square_yellow.png"></td>
+					</tr>
+
+					<tr>
+						<td>Green</td>
+						<td>Extra health</td>
+						<td align = "middle"><img src = "https://cycnus-studio.github.io/Project/img/square_green.png"></td>
+					</tr>
+					
+					<tr>
+						<td>Blue</td>
+						<td>Extra speed <br>Low firing rate</td>
+						<td align = "middle"><img src = "https://cycnus-studio.github.io/Project/img/square_blue.png"></td>
+					</tr>
+
+					<tr>
+						<td>Purple</td>
+						<td>Extra health <br>Extra speed</td>
+						<td align = "middle"><img src = "https://cycnus-studio.github.io/Project/img/square_purple.png"></td>
+					</tr>
+				
+					<tr>
+						<td>Red</td>
+						<td>Explodes on death</td>
+						<td align = "middle"><img src = "https://cycnus-studio.github.io/Project/img/square_red.png"></td>
+					</tr>
+
+					<tr>
+						<td>Orange</td>
+						<td>Passes through obstacles</td>
+						<td align = "middle"><img src = "https://cycnus-studio.github.io/Project/img/square_orange.png"></td>
+					</tr>
+				
+				</table>
+			
+			</p>
+
+			<hr>
+			
+			<h2>Upgrades</h2>
+
+			<p>
+				
+				These are temporary power ups that are very useful!!
+				
+				<table id = "upgradeTable">
+
+					<tr>
+						<th colspan = "4">Upgrades</th>
+					</tr>
+		
+					<tr>
+						<td><u>Upgrade</u></td>
+						<td><u>Description</u></td>
+						<td><u>Cost</u></td>
+						<td align = "middle"><u>Appearance</u></td>
+					</tr>
+					
+					<tr>
+						<td>Freeze</td>
+						<td>Freezes enemies and their bullets!</td>
+						<td>150</td>
+						<td align = "middle"><img src = "https://cycnus-studio.github.io/Project/img/freezeButton.png"></td>
+					</tr>
+					
+					<tr>
+						<td>Land Mines</td>
+						<td>Explodes and takes out enemies!</td>
+						<td>800</td>
+						<td align = "middle"><img src = "https://cycnus-studio.github.io/Project/img/mineButton.png"></td>
+					</tr>
+
+					<tr>
+						<td>Laser</td>
+						<td>Wipes all enemies off the screen!</td>
+						<td>1000</td>
+						<td align = "middle"><img src = "https://cycnus-studio.github.io/Project/img/laserButton.png"></td>
+					</tr>
+					
+				</table>				
+
+			</p>
+			
+		</center>
+		
+	</body>
+	
+</html>
