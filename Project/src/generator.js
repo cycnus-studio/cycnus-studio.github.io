@@ -217,7 +217,7 @@ const POINTS = [
 
  }
 
- function getPoints(sides, radius){
+ function getPolygonPoints(sides, radius){
 
  	// Since it's a regular polygon, just pick equal distance points of the circumference.
 
@@ -314,7 +314,7 @@ const POINTS = [
 
  	let attributes = getAttributes(type, colour);
 
- 	let points = getPoints(ENEMY_TYPES.indexOf(type) + 3, SPRITE_SIZE * 1.5)[1];
+ 	let points = getPolygonPoints(ENEMY_TYPES.indexOf(type) + 3, SPRITE_SIZE * 1.5)[1];
 	 
 	let enemy = new PIXI.Graphics();
     
@@ -360,12 +360,7 @@ const POINTS = [
 		        // Kill player if in radius
 
 		        if(in_radius(this.position.x, this.position.y, explosion_radius, sprite)){
-		            sprite.hp--;
-		            if(sprite.hp == 0){
-		                setTimeout(set_game_over, 1000);
-		                app.ticker.remove(gameLoop);
-		            }
-		            health_update();
+		            sprite.lose_hp();
 		        }
 
 		    }
@@ -416,7 +411,7 @@ const POINTS = [
 
  	let attributes = getAttributes(type, colour);
 
- 	let [angle, points] = getPoints(ENEMY_TYPES.indexOf(type) + 3, BOSS_SIZE);
+ 	let [angle, points] = getPolygonPoints(ENEMY_TYPES.indexOf(type) + 3, BOSS_SIZE);
 	 
 	let enemy = new PIXI.Graphics();
     
@@ -468,12 +463,7 @@ const POINTS = [
 		        // Kill player if in radius
 
 		        if(in_radius(this.position.x, this.position.y, explosion_radius, sprite)){
-		            sprite.hp--;
-		            if(sprite.hp == 0){
-		                setTimeout(set_game_over, 1000);
-		                app.ticker.remove(gameLoop);
-		            }
-		            health_update();
+		            sprite.lose_hp();
 		        }
 
 		    }
