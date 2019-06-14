@@ -1,11 +1,3 @@
-let type = "WebGL";
-const renderer = PIXI.autoDetectRenderer();
-
-if(!PIXI.utils.isWebGLSupported())
-    type = "canvas";
-
-PIXI.utils.sayHello(type);
-
 function loadProgressHandler(loader, resource) {
 
     // This could be changed to create a loading bar
@@ -43,20 +35,18 @@ let splash, main_menu, menu, play_screen, zone, bullet_container, mine_container
 
 */
 
-let enemies   = [];
-let bullets   = [];
-let obstacles = [];
-let mines     = [];
-
-let sprite, title, start, round_title, health_bar, active_health, pause, boss_bar, boss_health, boss, point_title; // Set all sprites here
+let sprite, title, start, round_title, health_bar, active_health, pause, boss_bar, boss_health, boss, point_title, credits; // Set all sprites here
 let state;
 
 let enemies_left = 0;
 let user_score   = 0;
 
-let music = new AudioProcessor();
+let music = new PlaylistManager();
+let shoot_sound = new SFXManager("https://cycnus-studio.github.io/Project/audio/fire%20sound.mp3", 0.1);
+let death_sound = new SFXManager("https://cycnus-studio.github.io/Project/audio/death%20sound.mp3", 1);
+let hit_sound   = new SFXManager("https://cycnus-studio.github.io/Project/audio/hit%20sound.mp3", 0.05);
 
-music.pause();
+let particle_manager = new ParticleManager();
 
 // style all text in game with this (you can style it with http://pixijs.download/release/docs/PIXI.TextStyle.html)
 
@@ -67,9 +57,26 @@ let style = new PIXI.TextStyle({
     align: "center",
 });
 
+let bolded_style = new PIXI.TextStyle({
+    fontFamily: "Roboto Th",
+    fontSize: 72,
+    fill: WHITE,
+    strokeThickness: 2,
+    stroke: "white",
+    align: "center",
+});
+
 let round_style = new PIXI.TextStyle({
     fontFamily: "Roboto Th",
     fontSize: 36,
+    fill: WHITE,
+    strokeThickness: 0,
+    align: "center",
+});
+
+let instructions_style = new PIXI.TextStyle({
+    fontFamily: "Roboto Th",
+    fontSize: 20,
     fill: WHITE,
     strokeThickness: 0,
     align: "center",
@@ -135,8 +142,6 @@ function set_splash_screen(){
 
     zone = new PIXI.Container();
     zone.alpha = 0;
-    //zone.interactive = true;
-    //zone.buttonMode  = true;
 
     zone.on('mousedown', (event) => {
 
@@ -178,61 +183,45 @@ function set_splash_screen(){
     sprite.hp = MAX_HEALTH;
     sprite.shots = MAX_SHOTS;
 
-    sprite.interactive = true;
-    sprite.buttonMode = true;
-
     sprite.spriteID = -1;
     sprite.isPlayer = true;
     sprite.isUser = true;
     sprite.hitArea = new PIXI.Polygon([0, 0, SPRITE_SIZE * 2, 0, SPRITE_SIZE * 2, SPRITE_SIZE * 2, 0, SPRITE_SIZE * 2]);
+	
+	particle_manager.follow_particles(sprite);
 
-    // Create pause button
-
-    pause = new PIXI.Text("❚❚", round_style);
-    
-    pause.position.set(WIDTH + pause.width + 20, pause.height / 2 + 20);
-    pause.anchor.set(0.5, 0.5);
-
-    pause.interactive = true;
-    pause.buttonMode = true;
-
-    pause.on('click', (event) => {
-        music.pause();
-        set_title_screen("resume");
-        zone.interactive = false;
-        zone.buttonMode = false;
-    });
-
-    pause.on('mouseover', (event) => {
-    	app.ticker.add(function zoom(){
-    		pause.scale.x += (1.1 - pause.scale.x) / 4;
-    		pause.scale.y += (1.1 - pause.scale.y) / 4;
-    		if(1.1 - pause.scale.x < 1e-2)
-    			app.ticker.remove(zoom);
-    	})
-    });
-
-    pause.on('mouseout', (event) => {
-    	app.ticker.add(function zoom(){
-    		pause.scale.x += (1 - pause.scale.x) / 4;
-    		pause.scale.y += (1 - pause.scale.y) / 4;
-    		if(pause.scale.x - 1 < 1e-2){
-    			pause.scale.set(1, 1);
-    			app.ticker.remove(zoom);
-    		}
-    	})
-    });
+    sprite.lose_hp = function(){
+    	hit_sound.play();
+	    sprite.hp--;
+	    if(sprite.hp == 0){
+	        music.pause();
+	        freeze_duration = 500;
+	        app.ticker.add(function pop(){
+	        	sprite.scale.x -= sprite.scale.x / 8;
+	        	sprite.scale.y -= sprite.scale.y / 8;
+	        	if(sprite.scale.x < 1e-5){
+	        		app.ticker.remove(pop);
+	        		setTimeout(set_game_over, 500);
+	        	}
+	        });
+	    }
+	    health_update();
+	}
 
 
     // Create Round Title
 
     round_title = new PIXI.Text("", round_style);
 
-    round_title.position.set(-round_title.width - 30, HEIGHT - PADDING * 0.5);
+    round_title.position.set(30, HEIGHT - PADDING * 0.5);
 
+    zone.addChild(background_particle_container);
     zone.addChild(area);
-    zone.addChild(pause);
     zone.addChild(round_title);
+	
+	// Create particles container
+	
+	zone.addChild(particle_container);
 
     // Create bullets container
 
@@ -257,6 +246,8 @@ let new_game = true;
 function start_game(){
 
     // generate map
+
+    on_pause = false;
 
     if(new_game == true){
 
@@ -313,6 +304,8 @@ function start_game(){
 			shape.y = obstacle.y = wall.y;
 			shape.width = obstacle.width;
             shape.height = obstacle.height;
+
+            shape.graphics = obstacle;
 			
 			let vertice = 0;
 			for(let [dx, dy] of [[-1, -1], [1, -1], [1, 1], [-1, 1]]){
@@ -322,11 +315,96 @@ function start_game(){
 			}
 			
             shape.isObstacle = true;
+			
+			particle_manager.surround_particles(obstacle);
 
 			zone.addChild(obstacle);
 			obstacles.push(shape);
 			
 		}
+
+		// Create pause button
+
+	    pause = new PIXI.Sprite(PIXI.loader.resources["https://cycnus-studio.github.io/Project/img/pauseButton.png"].texture);
+	    
+		pause.anchor.set(0.5, 0.5);
+	    pause.scale.set(0.1, 0.1);
+
+	    pause.position.set(WIDTH + pause.width + 30, pause.height / 2 + 30);
+
+	    pause.interactive = true;
+	    pause.buttonMode = true;
+
+	    pause.on('click', (event) => {
+	        music.pause();
+	        set_title_screen("resume");
+	        zone.interactive = false;
+	        zone.buttonMode = false;
+	        zone.cursor = "crosshair";
+	    });
+
+	    pause.on('mouseover', (event) => {
+	    	app.ticker.add(function zoom(){
+	    		pause.scale.x += (0.15 - pause.scale.x) / 8;
+	    		pause.scale.y += (0.15 - pause.scale.y) / 8;
+	    		if(0.15 - pause.scale.x < 1e-2)
+	    			app.ticker.remove(zoom);
+	    	})
+	    });
+
+	    pause.on('mouseout', (event) => {
+	    	app.ticker.add(function zoom(){
+	    		pause.scale.x += (0.1 - pause.scale.x) / 8;
+	    		pause.scale.y += (0.1 - pause.scale.y) / 8;
+	    		if(pause.scale.x - 0.1 < 1e-2){
+	    			pause.scale.set(0.1, 0.1);
+	    			app.ticker.remove(zoom);
+	    		}
+	    	})
+	    });
+
+	    zone.addChild(pause);
+		
+		// Make in-game tutorial
+
+		let arrows       = new PIXI.Sprite(PIXI.loader.resources["https://cycnus-studio.github.io/Project/img/directions.png"].texture);
+		let instructions = new PIXI.Text(
+			`Click to shoot.
+			Avoid enemy bullets.`, instructions_style);
+	    
+		arrows.anchor.set(0.5, 0.5);
+		instructions.anchor.set(0.5, 0.5);
+	    arrows.scale.set(0.1, 0.1);
+
+	    arrows.position.set(MID_WIDTH + sprite.width / 2, MID_HEIGHT + sprite.height / 2);
+	    instructions.position.set(MID_WIDTH + sprite.width / 2, MID_HEIGHT + 100);
+
+	    let frame_count = 0;
+
+		app.ticker.add(function scale(){
+	    	arrows.scale.x += Math.sin(frame_count * Math.PI / 180) / 2048;
+	    	arrows.scale.y += Math.sin(frame_count * Math.PI / 180) / 2048;
+	    	if(frame_count >= 360)
+	    		frame_count -= 360;
+	    	frame_count++;
+
+	    	if(sprite.position.x != MID_WIDTH || sprite.position.y != MID_HEIGHT){
+	    		setTimeout(function() {app.ticker.add(function fade(){
+	    			arrows.alpha -= arrows.alpha / 32;
+	    			instructions.alpha -= instructions.alpha / 1024;
+	    			if(instructions.alpha < 1e-4){
+	    				app.ticker.remove(fade);
+	    				app.ticker.remove(scale);
+	    				bullet_container.removeChild(arrows);
+	    				bullet_container.removeChild(instructions);
+	    			}
+	    		});}, 1000); 
+	    	}
+	    });
+
+	    zone.addChild(pause);
+	    bullet_container.addChild(arrows);
+	    bullet_container.addChild(instructions);
 
         generateHealthBar();
         generateScore();
@@ -337,11 +415,84 @@ function start_game(){
 
     zone.interactive = true;
     zone.buttonMode = true;
+    zone.cursor = "crosshair";
 
     app.ticker.add(gameLoop);
 
 }
 
+
+function create_credits(){
+
+	start.interactive = start.buttonMode = credits.interactive = credits.buttonMode = false;
+
+	let category_style = new PIXI.TextStyle({
+	    fontFamily: "Roboto Th",
+	    fontSize: 56,
+	    fill: WHITE,
+	    strokeThickness: 2,
+	    stroke: "white",
+	    align: "center",
+	    lineHeight: 50
+	});
+
+	let text_style = new PIXI.TextStyle({
+	    fontFamily: "Roboto Th",
+	    fontSize: 36,
+	    fill: WHITE,
+	    align: "center",
+	    lineHeight: 50
+	});
+
+	let credits_container = new PIXI.Container();
+	credits_container.alpha = 1e-5;
+	app.stage.addChild(credits_container);
+
+	let background = new PIXI.Graphics();
+	background.beginFill(BLACK);
+	background.drawRect(0, 0, WIDTH, HEIGHT);
+	background.endFill();
+
+	credits_container.addChild(background);
+
+	let credit_roles = new PIXI.Text(
+		`team manager
+		design director
+		lead programmer`, text_style);
+
+	let credit_names = new PIXI.Text(
+		`jonathan ma
+		jamie tsai
+		zeyu chen`, text_style);
+
+	credit_roles.anchor.set(0.5, 0.5);
+	credit_roles.position.set(MID_WIDTH - credit_names.width, MID_HEIGHT);
+
+	credit_names.anchor.set(0.5, 0.5);
+	credit_names.position.set(MID_WIDTH + credit_names.width, MID_HEIGHT);
+
+	credits_container.addChild(credit_roles);
+	credits_container.addChild(credit_names);
+
+	app.ticker.add(function fade_in(){
+		credits_container.alpha += (1 - credits_container.alpha) / 8;
+		if(1 - credits_container.alpha < 1e-4){
+			app.ticker.remove(fade_in);
+			setTimeout(function(){
+				app.ticker.add(function fade_out(){
+					credits_container.alpha -= credits_container.alpha / 8;
+					if(credits_container.alpha < 1e-4){
+						start.interactive = start.buttonMode = credits.interactive = credits.buttonMode = true;
+						app.ticker.remove(fade_out);
+						app.stage.removeChild(credits_container);
+					}
+				});
+			}, 2000);
+		}
+	});
+
+
+}
 
 
 // Sets the title screen
@@ -356,6 +507,7 @@ function set_title_screen(message = "play"){
     app.ticker.remove(gameLoop);
 
     is_title = true;
+    on_pause = true;
 
     let main_menu = new PIXI.Container();
 
@@ -384,6 +536,69 @@ function set_title_screen(message = "play"){
     title.anchor.set(0.5, 0.5);
     title.position.set(WIDTH - title.width - 20, HEIGHT - title.height - 20);
 
+    let help_button = new PIXI.Text("help", bolded_style);
+    help_button.anchor.set(0.5, 0.5);
+    help_button.position.set(WIDTH - help_button.width - 20, help_button.height + 20);
+
+    help_button.interactive = true;
+    help_button.buttonMode = true;
+
+    help_button.on('mouseover', (event) => {
+    	app.ticker.add(function zoom(){
+    		help_button.scale.x += (1.15 - help_button.scale.x) / 8;
+    		help_button.scale.y += (1.15 - help_button.scale.y) / 8;
+    		if(1.15 - help_button.scale.x < 1e-2)
+    			app.ticker.remove(zoom);
+    	})
+    });
+
+    help_button.on('mouseout', (event) => {
+    	app.ticker.add(function zoom(){
+    		help_button.scale.x += (1 - help_button.scale.x) / 8;
+    		help_button.scale.y += (1 - help_button.scale.y) / 8;
+    		if(help_button.scale.x - 1 < 1e-2){
+    			help_button.scale.set(1, 1);
+    			help_button.scale.set(1, 1);
+    			app.ticker.remove(zoom);
+    		}
+    	})
+    });
+
+    help_button.on('click', function openHelp(){
+    	let help_page = window.open("https://cycnus-studio.github.io/help_page.html", "_blank");
+    	help_page.focus;
+    });
+
+    credits = new PIXI.Text("about", bolded_style);
+    credits.anchor.set(0.5, 0.5);
+    credits.position.set(credits.width + 20, HEIGHT - credits.height - 20);
+
+    credits.interactive = true;
+    credits.buttonMode = true;
+
+    credits.on('mouseover', (event) => {
+    	app.ticker.add(function zoom(){
+    		credits.scale.x += (1.15 - credits.scale.x) / 8;
+    		credits.scale.y += (1.15 - credits.scale.y) / 8;
+    		if(1.15 - credits.scale.x < 1e-2)
+    			app.ticker.remove(zoom);
+    	})
+    });
+
+    credits.on('mouseout', (event) => {
+    	app.ticker.add(function zoom(){
+    		credits.scale.x += (1 - credits.scale.x) / 8;
+    		credits.scale.y += (1 - credits.scale.y) / 8;
+    		if(credits.scale.x - 1 < 1e-2){
+    			credits.scale.set(1, 1);
+    			credits.scale.set(1, 1);
+    			app.ticker.remove(zoom);
+    		}
+    	})
+    });
+
+    credits.on('click', create_credits);
+
 
     let start_white = new PIXI.Text(message, style);
     start_white.anchor.set(0.5, 0.5);
@@ -406,6 +621,8 @@ function set_title_screen(message = "play"){
     	degrees++;
     	if(degrees > 360)
     		degrees -= 360;
+    	if(degrees % 90 == 0)
+    		start_white.tint = brightness_icon.tint = COLOURS[rand_range(0, 7)];
     })
 
     // text mask
@@ -443,10 +660,14 @@ function set_title_screen(message = "play"){
 		zone.alpha = 1;
 		main_menu.alpha = 1;
 
-		if(new_game == true)
-            music = new AudioProcessor();
-        else
-            music.play();
+		if(new_game == true){
+            music = new PlaylistManager();
+            hit_sound = new SFXManager("https://cycnus-studio.github.io/Project/audio/hit%20sound.mp3", 0.05);
+            shoot_sound = new SFXManager("https://cycnus-studio.github.io/Project/audio/fire%20sound.mp3", 0.1);
+			death_sound = new SFXManager("https://cycnus-studio.github.io/Project/audio/death%20sound.mp3", 1);
+		}
+
+		music.play();
 
         start_game();
 
@@ -473,21 +694,21 @@ function set_title_screen(message = "play"){
 
 	start.on('mouseover', (event) => {
     	app.ticker.add(function zoom(){
-    		start_black.scale.x += (1.1 - start_black.scale.x) / 4;
-    		start_black.scale.y += (1.1 - start_black.scale.y) / 4;
-    		start_white.scale.x += (1.1 - start_white.scale.x) / 4;
-    		start_white.scale.y += (1.1 - start_white.scale.y) / 4;
-    		if(1.1 - start_black.scale.x < 1e-2)
+    		start_black.scale.x += (1.15 - start_black.scale.x) / 8;
+    		start_black.scale.y += (1.15 - start_black.scale.y) / 8;
+    		start_white.scale.x += (1.15 - start_white.scale.x) / 8;
+    		start_white.scale.y += (1.15 - start_white.scale.y) / 8;
+    		if(1.15 - start_black.scale.x < 1e-2)
     			app.ticker.remove(zoom);
     	})
     });
 
     start.on('mouseout', (event) => {
     	app.ticker.add(function zoom(){
-    		start_black.scale.x += (1 - start_black.scale.x) / 4;
-    		start_black.scale.y += (1 - start_black.scale.y) / 4;
-    		start_white.scale.x += (1 - start_white.scale.x) / 4;
-    		start_white.scale.y += (1 - start_white.scale.y) / 4;
+    		start_black.scale.x += (1 - start_black.scale.x) / 8;
+    		start_black.scale.y += (1 - start_black.scale.y) / 8;
+    		start_white.scale.x += (1 - start_white.scale.x) / 8;
+    		start_white.scale.y += (1 - start_white.scale.y) / 8;
     		if(start_black.scale.x - 1 < 1e-2){
     			start_black.scale.set(1, 1);
     			start_white.scale.set(1, 1);
@@ -499,6 +720,8 @@ function set_title_screen(message = "play"){
     main_menu.addChild(start);
     main_menu.addChild(mask);
     main_menu.addChild(title);
+    main_menu.addChild(credits);
+    main_menu.addChild(help_button);
 
     app.stage.addChild(main_menu);
 
@@ -514,6 +737,10 @@ function initialize(){
 
     sprite.hp = MAX_HEALTH;
     sprite.shots = MAX_SHOTS;
+    sprite.scale.set(1, 1);
+
+    freeze_duration = 0;
+    slowing_factor = 1;
 
     if(enemies.length != 0)
     	round_title.text = "Round 1";
@@ -533,6 +760,7 @@ function initialize(){
     zone.removeChild(boss_health)
     zone.removeChild(health_bar)
     zone.removeChild(active_health);
+    zone.removeChild(pause);
 
     enemies = [];
     obstacles = [];
@@ -544,73 +772,17 @@ function initialize(){
 
     is_loaded = false;
     is_ready_to_load = true;
+    blue_colour_bg = false;
 
 }
 
 function set_game_over(){
 
-    music.pause();
+	app.ticker.remove(gameLoop);
+    death_sound.play();
 
-    /*let title = new PIXI.Text("game over", style);
-    title.anchor.set(0.5, 0.5);
-    title.position.set(MID_WIDTH, -MID_HEIGHT + MID_HEIGHT / 2);
-
-    let back = new PIXI.Text("restart", style);
-    back.anchor.set(0.5, 0.5);
-    back.position.set(MID_WIDTH, MID_HEIGHT + MID_HEIGHT * 3 / 2);
-
-    app.stage.addChild(title);
-    app.stage.addChild(back)
-
-    app.ticker.add(function move_in(delta) {
-
-        if(title.y < MID_HEIGHT / 2)
-            title.y += delta * 20;
-
-        if(back.y >= MID_HEIGHT * 1.5)
-            back.y -= delta * 20;
-
-        if(zone.alpha > 0)
-            zone.alpha -= delta / 10;
-
-        if(title.y >= MID_HEIGHT / 3 && zone.alpha <= 0 && back.y < MID_HEIGHT * 1.5){
-            app.ticker.remove(move_in);
-            zone.visible = false;
-        }
-
-    });
-
-
-    back.interactive = true; 
-    back.buttonMode = true;
-
-    back.on('click', (event) => {
-
-        // Maybe restart but im lazy
-
-        location.reload();
-
-    });
-
-    back.on('mouseover', (event) => {
-    	app.ticker.add(function zoom(){
-    		back.scale.x += (1.1 - back.scale.x) / 4;
-    		back.scale.y += (1.1 - back.scale.y) / 4;
-    		if(1.1 - back.scale.x < 1e-2)
-    			app.ticker.remove(zoom);
-    	})
-    });
-
-    back.on('mouseout', (event) => {
-    	app.ticker.add(function zoom(){
-    		back.scale.x += (1 - back.scale.x) / 4;
-    		back.scale.y += (1 - back.scale.y) / 4;
-    		if(back.scale.x - 1 < 1e-2){
-    			back.scale.set(1, 1);
-    			app.ticker.remove(zoom);
-    		}
-    	})
-    });*/
+    zone.interactive = false;
+    zone.buttonMode = false;
 
     new_game = true;
     set_title_screen("restart");
@@ -688,7 +860,7 @@ function generateHealthBar(){
 
     });
 
-    let pause_target = WIDTH - pause.width - 20;
+    let pause_target = WIDTH - pause.width / 2 - 30;
 
     app.ticker.add(function move_in_pause(delta){
         
@@ -746,11 +918,6 @@ function generateBossBar(){
     zone.addChild(boss_bar);
     zone.addChild(boss_health);
 
-}
-
-function lose(){
-    sprite.hp--;
-    health_update();
 }
 
 function win(){
@@ -879,13 +1046,12 @@ function generateWave(){
 				highest = Math.max(STARTING_ROUNDS[sides], highest);
 		}
 
-		boss = generateBoss(ENEMY_TYPES[rand_range(highest == 0 ? 1 : 0, Math.min(3, Math.floor(highest / 10)))], rand_range(6, 6 + Math.floor(wave_id / 10)), obstacles);
+		enemies[0] = boss = generateBoss(ENEMY_TYPES[rand_range(highest == 0 ? 1 : 0, Math.min(3, Math.floor(highest / 10)))], rand_range(6, 6 + Math.floor(wave_id / 10)), obstacles);
 
 		boss.spriteID = enemy_count++;
 
 		zone.addChild(boss);
 		obstacles.push(boss);
-		enemies.push(boss);
 			
 		enemies_left++;
 		
@@ -901,9 +1067,17 @@ function generateWave(){
     			let enemy = generateEnemy(ENEMY_TYPES[sides], Math.min(12, rand_range(6, 6 + Math.floor((wave_id - 5) / 8))), obstacles);
     			enemy.spriteID = enemy_count++;
 
-		        zone.addChild(enemy);
-		        obstacles.push(enemy);
-		        enemies.push(enemy);
+    			if(wave_id == 1){
+    				setTimeout(function add(){
+    					zone.addChild(enemy);
+				        obstacles.push(enemy);
+				        enemies.push(enemy);
+    				}, 2000);
+    			} else {
+			        zone.addChild(enemy);
+			        obstacles.push(enemy);
+			        enemies.push(enemy);
+			    }
 		        
 		        enemies_left++;
     		}
@@ -911,8 +1085,6 @@ function generateWave(){
     	}
 
     }
-
-    // Countdown to next
 
  }
  
@@ -944,7 +1116,7 @@ function clearDeleted(){
 
 function shoot(id, src_x, src_y, tgt_x, tgt_y, is_player = false, ignore_constraints = false){
 
-	if(is_player == true && (tgt_x < PADDING || tgt_x > WIDTH - PADDING || tgt_y < PADDING || tgt_y > HEIGHT - PADDING))
+	if(is_player == true && (tgt_x < PADDING || tgt_x > WIDTH - PADDING || tgt_y < PADDING || tgt_y > HEIGHT - PADDING || sprite.scale.x < 1))
     	return;
 
     if(is_player == true){
@@ -957,9 +1129,13 @@ function shoot(id, src_x, src_y, tgt_x, tgt_y, is_player = false, ignore_constra
         if(enemies[id].previousShot-- > 0){
             return;
         }
+        console.log(id, enemies[id].shots);
         enemies[id].shots--;
         enemies[id].previousShot = 5;
     }
+
+    if(is_player == true)
+    	shoot_sound.play();
 
     let unit_size = is_player ? SPRITE_SIZE : enemies[id].height;
 
@@ -983,6 +1159,7 @@ function shoot(id, src_x, src_y, tgt_x, tgt_y, is_player = false, ignore_constra
 
     bullet.anchor = {x: 1, y: 1};
     bullet.isBullet = true;
+    bullet.isBossSpreadBullet = ignore_constraints;
 
     bullet.isPlayerShot = is_player;
     bullet.spriteID = enemies[id].spriteID;
@@ -1031,8 +1208,7 @@ let is_ready_to_load = true;
 
 function gameLoop(delta){
 
-    // Update current game state
-    state(delta);
+    music.update();
 
     if(enemies_left == 0 && is_loaded == false && is_title == false){
         is_loaded = true;
@@ -1041,22 +1217,58 @@ function gameLoop(delta){
         generateWave();
     }
 
+    // Update particles
+
+    let new_particles = [];
+    for(let particle of particles){
+        particle.update();
+        if(particle.alpha > 1e-4){
+            new_particles.push(particle);
+        } else {
+            if(particle._particle.is_background == false)
+                particle_container.removeChild(particle._particle);
+            else
+                background_particle_container.removeChild(particle._particle);
+        }
+    }
+    particles = new_particles.slice(0);
+
+    // Update colour to obstacles
+
+    if(music.is_on_beat(0, 15, false) == true){
+
+	    for(let obstacle_ID = 0; obstacle_ID < 6; obstacle_ID++){
+	        if(obstacles[obstacle_ID].isObstacle !== true)
+	            break;
+	        obstacles[obstacle_ID].graphics.tint = blue_colour_bg ? BLUE_COLOURS[rand_range(0, 6)] : COLOURS[rand_range(0, 5)];
+	    }
+
+	}
+
+	// Update current game state
+    state(delta);
+
 }
 
 // Actual movement
 
 function play(delta){
 
-    music.update();
-
     // Powerups
 
     if(freeze_duration-- > 0){
+
+        blue_colour_bg = true;
     	slowing_factor /= 1.05;
+
     } else if(freeze_duration <= 0 && slowing_factor < 1){
+
     	slowing_factor *= 1.05;
     	freeze_duration = 0;
+
     } else {
+
+        blue_colour_bg = false;
     	slowing_factor = 1;
     }
 
@@ -1153,13 +1365,7 @@ function play(delta){
 
             if(hit_player == true){
 
-                sprite.hp--;
-                if(sprite.hp == 0){
-                    setTimeout(set_game_over, 1000);
-                    app.ticker.remove(gameLoop);
-                }
-
-                health_update();
+                sprite.lose_hp();
 
             } else if(is_hit !== true && obstacles[is_hit].isObstacle !== true && obstacles[is_hit].scale.x == 1){
 				
@@ -1172,7 +1378,7 @@ function play(delta){
 
             if(bullets[ID].isPlayerShot == true){
                 sprite.shots++;
-            } else {
+            } else if(bullets[ID].isBossSpreadBullet == false){
 				if(bullets[ID].spriteID >= enemies.length)
 					continue;
                 if(enemies[bullets[ID].spriteID].dead)
@@ -1290,6 +1496,8 @@ PIXI.loader
         "https://cycnus-studio.github.io/Project/img/laserButtonDown.png",
         "https://cycnus-studio.github.io/Project/img/laserButtonOver.png",
         "https://cycnus-studio.github.io/Project/img/laserButtonDisabled.png",
+        "https://cycnus-studio.github.io/Project/img/pauseButton.png",
+        "https://cycnus-studio.github.io/Project/img/directions.png"
     ])
     .on("progress", loadProgressHandler) 
     .load(setup);
