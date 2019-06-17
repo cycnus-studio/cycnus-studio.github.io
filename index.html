@@ -17,8 +17,8 @@
     
         <!-- However this doesn't work well when loading it from the computer :/ -->
     
-        <link rel="prefetch" href="https://cycnus-studio.github.io/Project/fonts/ModernSans-Light.otf" as="font" crossorigin="anonymous">
-        <link rel="prefetch" href="https://cycnus-studio.github.io/Project/fonts/Roboto_Thin.ttf" as="font" crossorigin="anonymous">
+        <link rel="preload" href="https://cycnus-studio.github.io/Project/fonts/ModernSans-Light.otf" as="font" crossorigin="anonymous">
+        <link rel="preload" href="https://cycnus-studio.github.io/Project/fonts/Roboto_Thin.ttf" as="font" crossorigin="anonymous">
         <link rel="stylesheet" type="text/css" href="Project/styles/styles.css">
 
     </head>
@@ -38,6 +38,8 @@
         <div class="about">
 
             <div class="about-content">
+                
+                <!-- Center all the content -->
                 
                 <center>
 
@@ -65,6 +67,7 @@
                     <h2>glow</h2>
 
                     <!-- Holds the canvas that will be inserted through JS-->
+                    
                     <center id="container"></center>
 
                 </center>
