@@ -415,15 +415,10 @@ function create_credits(){
 
     // Create text
 
-    let credit_roles = new PIXI.Text(
-        `team manager
-        design director
-        lead programmer`, text_style);
+    let credit_roles = new PIXI.Text(" team manager \n design director \n lead programmer ", text_style);
 
     let credit_names = new PIXI.Text(
-        `jonathan ma
-        jamie tsai
-        zeyu chen`, text_style);
+        " jonathan ma \n jamie tsai \n zeyu chen ", text_style);
 
     // Position the text
 
