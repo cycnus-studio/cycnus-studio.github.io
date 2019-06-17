@@ -1,109 +1,67 @@
 <!DOCTYPE html>
 <html>
-	<head>
-		<!-- SIDE NOTE: THIS IS THE PIXI JS API LIBRARY. WE DID NOT WRITE THIS, IGNORE IT -->
-		<script src="Project/src/pixi.js"></script>
-		<link href="https://fonts.googleapis.com/css?family=Montserrat:100" rel="stylesheet">
-		
-		<style>
 
-			body {
-				margin: 0;
-				background-image: linear-gradient(to bottom left, #001433, #003380);
-			}
-
-			.splash{
-				margin: 0;
-				height: 100vh;
-			}
-			
-			.about{
-				height: 200vh;	
-			}
-
-			.splash-content{
-				text-align: center;
-				height: 40vh;
-				padding: 30vh 30vw;
-			}
-
-			.splash-content img {
-				width: 25vmin;
-				height: 25vmin;
-				filter: sepia(100%) hue-rotate(180deg) saturate(4) brightness(110%);
-			}
-
-			h1, h2, p {
-				color: white;
-				font-family: 'Montserrat';, sans-serif;
-				letter-spacing: 3px;
-			}
-
-			canvas {
-	        	display: block;
-	        	margin: 0 auto;
-	        	background-color:#FFF;
-	        }
-
-	        .about-content {
-				text-align: center;
-				padding: 10vh 5vw;
-	        }
-
-		</style>
-		
-		<!-- Loads the fonts for the game
-			Even though the CSS file loads the required fonts, the game loads faster, meaning the fonts won't have enough time to load.
-			This is fixed through rel="preload", which loads the fonts as soon as possible.
-		-->
+    <head>
+        <!-- SIDE NOTE: THIS IS THE PIXI JS API LIBRARY. WE DID NOT WRITE THIS, IGNORE IT -->
+        <script src="Project/src/pixi.js"></script>
+        <link href="https://fonts.googleapis.com/css?family=Montserrat:100" rel="stylesheet">
+        <link href="styles.css" rel="stylesheet">
+        
+        <!-- Loads the fonts for the game
+            Even though the CSS file loads the required fonts, the game loads faster, meaning the fonts won't have enough time to load.
+            This is fixed through rel="preload", which loads the fonts as soon as possible.
+        -->
     
-    <!-- However this doesn't work well when loading it from the computer :/ -->
+        <!-- However this doesn't work well when loading it from the computer :/ -->
     
-		<link rel="preload" href="https://cycnus-studio.github.io/Project/fonts/ModernSans-Light.otf" as="font" crossorigin="anonymous">
-		<link rel="preload" href="https://cycnus-studio.github.io/Project/fonts/Roboto_Thin.ttf" as="font" crossorigin="anonymous">
-		<link rel="stylesheet" type="text/css" href="Project/styles/styles.css">
+        <link rel="prefetched" href="https://cycnus-studio.github.io/Project/fonts/ModernSans-Light.otf" as="font" crossorigin="anonymous">
+        <link rel="prefetched" href="https://cycnus-studio.github.io/Project/fonts/Roboto_Thin.ttf" as="font" crossorigin="anonymous">
+        <link rel="stylesheet" type="text/css" href="Project/styles/styles.css">
 
-	</head>
-	<body>
+    </head>
 
-		<div class="splash">
-			<div class="splash-content">
-				<img src="swan_logo.png">
-				<h1>cycnus</h1>
-				<p>coming soon</p>
-			</div>
-		</div>
+    <body>
 
-		<div class="about">
+        <div class="splash">
+            <div class="splash-content">
+                <img src="swan_logo.png">
+                <h1>cycnus</h1>
+                <p>striving for excellence</p>
+            </div>
+        </div>
 
-			<div class="about-content">
-				
-				<center>
+        <div class="about">
 
-					<h2>What we do</h2>
+            <div class="about-content">
+                
+                <center>
 
-					<p>Here, the team of cycnus strives to make enjoyable games for everyone to enjoy. We aim to make the most high-quality games that will leave a lasting imprint into the industry.</p>
+                    <h2>What we do</h2>
 
-					<br>
+                    <p>Here, the team of cycnus strives to make enjoyable games for everyone to enjoy. We aim to make the most high-quality games that will leave a lasting imprint into the industry.</p>
 
-					<h2>A sample demo</h2>
+                    <br>
 
-					<!-- Holds the canvas that will be inserted through JS-->
-					<center id="container"></center>
+                    <h2>glow</h2>
 
-					<!-- Loads all the required files for the game -->
-					<script type="text/javascript" src="Project/src/intialize.js"></script>
-					<script type="text/javascript" src="Project/src/music.js"></script>
-					<script type="text/javascript" src="Project/src/generator.js"></script>
-					<script type="text/javascript" src="Project/src/particles.js"></script>
-					<script type="text/javascript" src="Project/src/main.js"></script>
-					<script type="text/javascript" src="Project/src/collide.js"></script>
-					<script type="text/javascript" src="Project/src/powerups.js"></script>
-				</center>
-				
-	 		</div>
+                    <!-- Holds the canvas that will be inserted through JS-->
+                    <center id="container"></center>
 
-		</div>
+                </center>
+                
+             </div>
 
-	</body>
+        </div>
+
+        <!-- Loads all the required files for the game -->
+        <script type="text/javascript" src="Project/src/intialize.js"></script>
+        <script type="text/javascript" src="Project/src/music.js"></script>
+        <script type="text/javascript" src="Project/src/generator.js"></script>
+        <script type="text/javascript" src="Project/src/particles.js"></script>
+        <script type="text/javascript" src="Project/src/main.js"></script>
+        <script type="text/javascript" src="Project/src/collide.js"></script>
+        <script type="text/javascript" src="Project/src/powerups.js"></script>
+
+    </body>
+
 </html>
