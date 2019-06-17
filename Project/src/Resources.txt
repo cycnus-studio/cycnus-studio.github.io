@@ -4,7 +4,7 @@ List of online resources used:
     - Only the code was taken as a helper function
     
   - Line Intersection Detection: http://jeffe.cs.illinois.edu/teaching/373/notes/x06-sweepline.pdf
-    - Another helper function taken from their pseudocode/concept
+    - Helper function taken from their pseudocode
     
   - Distance of Line to Point:   http://paulbourke.net/geometry/pointlineplane/
     - Used source's concept to write the helper function
@@ -16,4 +16,4 @@ List of online resources used:
     - We added support for multiple key readings
     
   - PIXI.js : http://pixijs.download/release/docs/index.html
-    - We did not write PIXI.js, only used it for it's fast canvas processing.
+    - We did not write PIXI.js, only used it for its fast canvas processing.
