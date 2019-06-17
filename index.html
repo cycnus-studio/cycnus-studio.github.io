@@ -52,8 +52,15 @@
 
 		</style>
 		
-		<link rel="preload" as="font" href="Project/fonts/ModernSans-Light.otf" crossorigin="anonymous">
-		<link rel="preload" as="font" href="Project/fonts/Roboto_Thin.ttf" crossorigin="anonymous">
+		<!-- Loads the fonts for the game
+			Even though the CSS file loads the required fonts, the game loads faster, meaning the fonts won't have enough time to load.
+			This is fixed through rel="preload", which loads the fonts as soon as possible.
+		-->
+    
+    <!-- However this doesn't work well when loading it from the computer :/ -->
+    
+		<link rel="preload" href="https://cycnus-studio.github.io/Project/fonts/ModernSans-Light.otf" as="font" crossorigin="anonymous">
+		<link rel="preload" href="https://cycnus-studio.github.io/Project/fonts/Roboto_Thin.ttf" as="font" crossorigin="anonymous">
 		<link rel="stylesheet" type="text/css" href="Project/styles/styles.css">
 
 	</head>
@@ -73,16 +80,18 @@
 				
 				<center>
 
-						<h2>What we do</h2>
+					<h2>What we do</h2>
 
-						<p>Here, the team of cycnus strives to make enjoyable games for everyone to enjoy. We aim to make the most high-quality games that will leave a lasting imprint into the industry.</p>
+					<p>Here, the team of cycnus strives to make enjoyable games for everyone to enjoy. We aim to make the most high-quality games that will leave a lasting imprint into the industry.</p>
 
 					<br>
 
 					<h2>A sample demo</h2>
 
+					<!-- Holds the canvas that will be inserted through JS-->
 					<center id="container"></center>
 
+					<!-- Loads all the required files for the game -->
 					<script type="text/javascript" src="Project/src/intialize.js"></script>
 					<script type="text/javascript" src="Project/src/music.js"></script>
 					<script type="text/javascript" src="Project/src/generator.js"></script>
