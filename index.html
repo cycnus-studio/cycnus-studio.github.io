@@ -12,13 +12,13 @@
         
         <!-- Loads the fonts for the game
             Even though the CSS file loads the required fonts, the game loads faster, meaning the fonts won't have enough time to load.
-            This is fixed through rel="preload", which loads the fonts as soon as possible.
+            This is fixed through rel="preload" or rel="prefetch", which loads the fonts as soon as possible.
         -->
     
         <!-- However this doesn't work well when loading it from the computer :/ -->
     
-        <link rel="prefetched" href="https://cycnus-studio.github.io/Project/fonts/ModernSans-Light.otf" as="font" crossorigin="anonymous">
-        <link rel="prefetched" href="https://cycnus-studio.github.io/Project/fonts/Roboto_Thin.ttf" as="font" crossorigin="anonymous">
+        <link rel="prefetch" href="https://cycnus-studio.github.io/Project/fonts/ModernSans-Light.otf" as="font" crossorigin="anonymous">
+        <link rel="prefetch" href="https://cycnus-studio.github.io/Project/fonts/Roboto_Thin.ttf" as="font" crossorigin="anonymous">
         <link rel="stylesheet" type="text/css" href="Project/styles/styles.css">
 
     </head>
