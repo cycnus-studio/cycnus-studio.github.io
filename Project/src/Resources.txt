@@ -1,0 +1,19 @@
+List of online resources used:
+
+  - Counterclockwise  Detection: https://algs4.cs.princeton.edu/91primitives/
+    - Only the code was taken as a helper function
+    
+  - Line Intersection Detection: http://jeffe.cs.illinois.edu/teaching/373/notes/x06-sweepline.pdf
+    - Another helper function taken from their pseudocode/concept
+    
+  - Distance of Line to Point:   http://paulbourke.net/geometry/pointlineplane/
+    - Used source's concept to write the helper function
+  
+  - Web Audio API: https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API
+    - Analyser/Processor/Sound Manager is completely resource-free and written by ourselves
+  
+  - Keyboard Listener: https://github.com/kittykatattack/learningPixi#keyboard
+    - We added support for multiple key readings
+    
+  - PIXI.js : http://pixijs.download/release/docs/index.html
+    - We did not write PIXI.js, only used it for it's fast canvas processing.
