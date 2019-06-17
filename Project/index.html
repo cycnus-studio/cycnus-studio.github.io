@@ -4,19 +4,21 @@
 		<header name = "Access-Control-Allow-Origin" value = "*" /> 
 		<meta charset="utf-8">
 		<!-- Fetches font file first, IMPORTANT OR ELSE SPLASH SCREEN IS SCREWED UP -->
-		<link rel="preload" href="fonts/ModernSans-Light.otf" as="font">
+		<link rel="preload" href="fonts/Modern_Sans_Light.otf" as="font">
+		<link rel="preload" href="fonts/Roboto_Thin.ttf" as="font">
 		<link rel="stylesheet" type="text/css" href="styles/styles.css">
 		<script src="src/pixi.js"></script>
 	</head>
 	<body>
-		<div id="content">
-			<canvas id="canvas"></canvas>
-		</div>
+		<!-- Container for the canvas -->
 		<center id="container"></center>
-		<script type="text/javascript" src="src/music.js"></script>
+		<!-- Load all JS files -->
 		<script type="text/javascript" src="src/intialize.js"></script>
+		<script type="text/javascript" src="src/music.js"></script>
+		<script type="text/javascript" src="src/generator.js"></script>
+		<script type="text/javascript" src="src/particles.js"></script>
         <script type="text/javascript" src="src/main.js"></script>
 		<script type="text/javascript" src="src/collide.js"></script>
-		<script type="text/javascript" src="src/generator.js"></script>
+		<script type="text/javascript" src="src/powerups.js"></script>
 	</body>
 </html>
