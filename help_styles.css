@@ -7,9 +7,9 @@ body {
 
 h1 {
 	text-align:center;
-	background-color:rgba(42,51,65,0.55);
+	background-color:rgba(42,51,65,0.55); /* Sets colour of background using rgba */
 	color:#eff3f5;
-	border-radius:10px;
+	border-radius:10px; /* Leaves small rounded corners */
 	font-family:'Roboto';
 }
 	
@@ -31,7 +31,7 @@ p, ul {
 	margin-left:300;
 	margin-right:300;
 	padding:10;
-	line-height: 1.5em;
+	line-height: 1.5em; /* Space out lines more to make it easier to read */
 }
 	
 img {
@@ -45,7 +45,7 @@ table {
 	border-width:4;
 	color:white;
 	width:500;
-	border-style:double;
+	border-style:double; /* Create 2 lines that run through the border */
 	padding:15;
 	margin-top:10;
 	margin-bottom:10;
@@ -64,11 +64,11 @@ hr {
 
 hr:after {
 	background: #fff;
-	content: 'O';
+	content: 'O'; /* Creates a cool "O" ring in the middle of the horizontal ruler */
 	padding: 0 4px;
 	position: relative;
 	top: -13px;
-	}
+}
 
 #upgradeTable {
 	width: 600;
