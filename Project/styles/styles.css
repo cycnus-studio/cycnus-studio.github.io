@@ -1,16 +1,11 @@
 /* This is how you link custom fonts to the game*/
 			
 @font-face {
-	font-family: "Modern Sans";
+	font-family: "Modern Sans"; /* Link Modern Sans into the game */
 	src: url("../fonts/ModernSans-Light.otf") format("opentype");
 }
 
 @font-face {
-	font-family: "Secret Code";
-	src: url("../fonts/Secret_Code.ttf");
-}
-
-@font-face {
-	font-family: "Roboto Th";
+	font-family: "Roboto Th"; /* Link Roboto Thin into the game */
 	src: url("../fonts/Roboto_Thin.ttf");
 }
