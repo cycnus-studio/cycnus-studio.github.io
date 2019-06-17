@@ -28,6 +28,12 @@ h1, h2, p {
 	color: white;
 	font-family: 'Montserrat', sans-serif;
 	letter-spacing: 3px;
+	text-align: center;
+}
+
+td {
+	padding: 1em;
+	width: 33%;
 }
 
 canvas {
